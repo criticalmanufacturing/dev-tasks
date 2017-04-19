@@ -1,5 +1,5 @@
 {
-  "name": "@criticalmanufacturing/cmf.dev.tasks",
+  "name": "cmf.dev.tasks",
   "version": "1.0.0",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
@@ -52,19 +52,5 @@
     "tasks"
   ],
   "author": "Critical Manufacturing",
-  "contributors": [
-    {
-      "name": "Marco Silva",
-      "email": "marco.silva@criticalmanufacturing.com"
-    },
-    {
-      "name": "José Silva",
-      "email": "jose.silva@criticalmanufacturing.com"
-    },
-    {
-      "name": "Manuel Garcia",
-      "email": "manuel.garcia@criticalmanufacturing.com"
-    }
-  ],
   "license": "GPL-3.0"
 }
