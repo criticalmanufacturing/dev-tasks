@@ -1,0 +1,70 @@
+{
+  "name": "@criticalmanufacturing/cmf.dev.tasks",
+  "version": "1.0.0",
+  "description": "Gulp tasks and helpers for development",
+  "main": "main.js",
+  "dependencies": {
+    "async-walker": "~0.0.4",
+    "del": "~1.2.0",
+    "gulp": "^3.9.1",
+    "gulp-autoprefixer": "~2.3.1",
+    "gulp-callback": "0.0.3",
+    "gulp-concat": "~2.6.0",    
+    "gulp-if": "~2.0.1",
+    "gulp-inject": "~4.0.0",
+    "gulp-install": "~0.4.0",
+    "gulp-less": "^3.0.3",
+    "gulp-minify": "~0.0.7",
+    "gulp-rename": "^1.2.2",
+    "gulp-replace-task": "~0.2.1",
+    "gulp-shell": "~0.6.3",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-typescript": "~2.13.6",  
+    "gulp-util": "^3.0.5",
+    "gulp-webserver": "^0.9.1",
+    "jasmine-core": "^2.3.4",
+    "jasmine-jquery": "~2.1.1",
+    "karma": "^0.13.14",
+    "karma-chrome-launcher": "^0.2.1",
+    "karma-coverage": "~0.3.1",
+    "karma-jasmine": "^0.3.6",
+    "karma-jasmine-ajax": "^0.1.13",
+    "karma-systemjs": "~0.8.1",
+    "ncp": "~2.0.0",
+    "run-sequence": "~1.2.2",
+    "through": "~2.3.8",
+    "uuid": "^2.0.2",
+    "yargs": "~3.10.0"
+  },
+  "devDependencies": {
+    "gulp-batch": "^1.0.5",
+    "gulp-watch": "^4.2.4",
+    "karma-ie-launcher": "^0.2.0",
+    "typescript": "2.2.1"
+  },
+  "scripts": {
+
+  },
+  "keywords": [
+    "cmf",
+    "gulp",
+    "dev",
+    "tasks"
+  ],
+  "author": "Critical Manufacturing",
+  "contributors": [
+    {
+      "name": "Marco Silva",
+      "email": "marco.silva@criticalmanufacturing.com"
+    },
+    {
+      "name": "José Silva",
+      "email": "jose.silva@criticalmanufacturing.com"
+    },
+    {
+      "name": "Manuel Garcia",
+      "email": "manuel.garcia@criticalmanufacturing.com"
+    }
+  ],
+  "license": "GPL-3.0"
+}

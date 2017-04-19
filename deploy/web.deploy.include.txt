@@ -1,0 +1,16 @@
+**/assets/**
+*.js
+*.css
+*.html
+*.dll
+*.d.ts
+*.config
+*.woff
+*.ttf
+*.eot
+*.xml
+__bower.json
+.bowerrc
+package.json
+app.ts
+config.json

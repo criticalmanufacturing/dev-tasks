@@ -1,0 +1,7 @@
+node_modules\**\node_modules
+apps\**
+src\cmf.core
+src\cmf.mes
+src\packages\**
+utils\cmf.dev.tasks\node_modules
+utils\cmf.dev.scaffolding\generator-html\node_modules
