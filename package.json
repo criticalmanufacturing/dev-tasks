@@ -1,6 +1,6 @@
 {
   "name": "cmf.dev.tasks",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
@@ -34,13 +34,14 @@
     "run-sequence": "~1.2.2",
     "through": "~2.3.8",
     "uuid": "^2.0.2",
-    "yargs": "~3.10.0"
-  },
-  "devDependencies": {
+    "yargs": "~3.10.0",
     "gulp-batch": "^1.0.5",
     "gulp-watch": "^4.2.4",
     "karma-ie-launcher": "^0.2.0",
     "typescript": "2.2.1"
+  },
+  "devDependencies": {
+
   },
   "scripts": {
 
