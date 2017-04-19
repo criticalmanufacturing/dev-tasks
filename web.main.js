@@ -16,7 +16,7 @@ module.exports = function (gulpWrapper, ctx) {
     
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
-    var typescriptCompilerPath = ctx.__repositoryRoot + '/node_modules/cmf.dev.tasks/node_modules/typescript/bin/tsc';
+    var typescriptCompilerPath = ctx.__repositoryRoot + '/node_modules/typescript/bin/tsc';
 
     /**
      * Compile typescript files
