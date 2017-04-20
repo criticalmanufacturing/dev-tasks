@@ -1,0 +1,12 @@
+sudo: false
+language: node_js
+node_js:
+  - "node"
+deploy:
+  provider: npm
+  email: sobreiro.pedro@gmail.com
+  api_key:
+    secure: 2lzechmN7ZKXKW88Hl1AG7jtWLZiWW2KoC1JagZVb1zfLYOwuIze78rn4aBnGoDqOWNvrZNPuYF6E5pqI4c2Q4f/pvDq03ijN6zd8qQxKx/De7uQqVVNzM+aUuCPIR5jNvj/S2OVff+Hdrmt0/sbOdJ6rcAr7Dr/SsGX+sKZdskpK6hsk8qlJ6u1uLbVjeSzhqMSTG3Qi1vRd5JdAOCfcgSbbo+OkKSQ3Ij3y40csIpyVbHwjsX1zbCgvDOoYBIN8Y/w8x00m+VeOgHbWKdRfWrKKghvz1zyuswRCfCr2YoI27bYLLu3Yj4fZdRLXQgoB4I50a/L+DlCe+1itcKckpUKr/durtJnV/njBxEGPFf8nKdqexJQeBJ6NvaaCNcU9VymrGxw9oLE4Zi8jEUTVPAZoFV84HQsjNkuZXxzH5f9aff43cw/pkxhVX+zHjIKqbqeZ33KMnielLmcpWEqGYmZ41g0cLD+BF7jccafNMmv3xuRlOSWXlMNTkT7BFWLF9YMgkeI/wCnlPesjkfqJXY9WieD1l7ecWzzrBIlF6rXokOsbSdkKlB9xsxWgsxBHspppFMGMAs9aElajoL4ExQKbChkQok8p3BMcq0jwJRfe9mlRtTKCAo7yfQsm57bQAwAnFi6wUhQcLhzB/r79t0ycHRQhrJ9p8EvaiCjlqM=
+  on:
+    tags: true
+    repo: cmf.dev.tasks

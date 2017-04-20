@@ -1,6 +1,6 @@
 {
   "name": "cmf.dev.tasks",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
