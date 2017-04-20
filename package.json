@@ -1,6 +1,6 @@
 {
   "name": "cmf.dev.tasks",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
@@ -53,5 +53,9 @@
     "tasks"
   ],
   "author": "Critical Manufacturing",
-  "license": "GPL-3.0"
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/criticalmanufacturing/cmf.dev.tasks.git"
+  }
 }
