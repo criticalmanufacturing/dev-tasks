@@ -19,7 +19,8 @@ module.exports = {
         var self = this;
 
         var dependencyOperations = self.createOperations(path.join(rootDir, "dependencies"), dependencies, operation);
-        utils.cmd.runMany(dependencyOperations, function() {
+
+        utils.cmd.runMany(dependencyOperations, function() {            
             var frameworkOperations = [];
             if (buildFramework === true) {
                 frameworkOperations = self.createOperations(path.join(rootDir, "src"), [framework], operation);
@@ -68,7 +69,7 @@ module.exports = {
             actions.forEach(function (action) {
                 operations.push({
                     command: "node",
-                    arguments: [path.join(__dirname, "node_modules", "gulp", "bin", "gulp.js"), action].concat(args),
+                    arguments: [path.join(__dirname, "../", "gulp", "bin", "gulp.js"), action].concat(args),
                     cwd: path.join(baseDir, project)
                 });
             });

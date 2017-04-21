@@ -143,11 +143,15 @@ module.exports = {
                 {
                     cwd: cmd.cwd
                 }
-            );
+            );            
 
             var result = '';
-            command.stdout.on('data', function(data) {
+            command.stdout.on('data', function(data) {                
                 result += data.toString();
+            });
+            command.stderr.on('data', function(error) {
+                console.error(error);   
+                process.exit(-1);             
             });
             command.on('close', function(code) {
                 console.log(result);
@@ -183,8 +187,7 @@ module.exports = {
                             callback();
                         }
                     }
-                };
-
+                };                
                 for(var i = 0; i < commands.length; i++){                
                     this.run(commands[i], finalize(i));
                 }
