@@ -2,7 +2,7 @@ var path = require('path');
 var util = require('util');
 var ncp = require('ncp').ncp;
 var fs = require("fs");
-
+ 
 var __cwd = path.resolve('.'); //where the process was launched from
 var __tasksdir = __dirname; //where the tools are placed
 //general task dependency plugins
