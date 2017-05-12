@@ -1,14 +1,60 @@
-var fs = require("fs");
-var pluginRename = require('gulp-rename');
-var pluginDel = require("del");
-var pluginExecute = require("child_process").exec;
+var fs = require("fs"),
+	pluginRename = require('gulp-rename'), 
+	pluginDel = require("del"), 
+	pluginExecute = require("child_process").exec,
+	linklocal = require("linklocal");
 
 module.exports = function (gulpWrapper, ctx) {	
-    var gulp = gulpWrapper.gulp;
-    var seq = gulpWrapper.seq;
+    var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq, getDirectories = function (path) {
+		try {
+			var directory = fs.readdirSync(path);
+            return directory.filter(function (file) {
+                return fs.statSync(path + '/' + file).isDirectory();
+            });
+
+		} catch (e) {
+			return [];
+		}
+	};
+
+	/**
+     * Removes stale files and directories. After this a new install is required.
+     */
+    gulp.task('purge', function (callback) {
+        pluginDel([            
+            ctx.baseDir + ctx.libsFolder,
+            ctx.baseDir + ctx.metadataFileName,
+            ctx.baseDir + "obj",
+            ctx.baseDir + "bin"], { force: true }, callback);
+    });
+
+	/**
+	 * Cleans the libs folder allowing a cleaning install.
+	 * There is an exception here, which is the webApp for customized projects. We can't delete the libs folder as we would be removing the HTML5 release.
+	 */
+	gulp.task('__cleanLibs',  function (callback) {	
+		if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
+			pluginDel.sync([ctx.baseDir + ctx.libsFolder], { force: true });	
+		}
+		callback();
+	}); 
+
+    /*
+    * Installs all npm packages
+    */ 
+    gulp.task('__npmInstall',  function(callback) {	
+	    try {	
+	    	process.chdir(ctx.baseDir);
+			// Should be the other way arround
+			pluginExecute('npm install --only=production', callback);
+		} catch(ex) {
+			console.error(ex);
+			callback();
+		}
+	}); 
 
 	/*
-	* We infer here that, if we have a "local-typings" folder, then the typings inside are not available in their own npm package or in the npm @types repository.
+	* If there is a "local-typings" folder, then the typings inside are not available in their own npm packages or in the npm @types repository.
 	* So we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
 	*/
 	gulp.task('__copyLocalTypings', function (callback) {
@@ -27,7 +73,7 @@ module.exports = function (gulpWrapper, ctx) {
 						    		.pipe(pluginRename("index.d.ts"))				    
 						    		.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/")));
 							}
-						}catch(error){
+						} catch(error){
 							//folder does not exist
 						}
 					});
@@ -42,74 +88,34 @@ module.exports = function (gulpWrapper, ctx) {
         return promise;			
 	});
 
+	/**
+	 * Recursively links all npm packages.
+	 */
 	gulp.task('__linkDependencies',  function (callback) {	
-		//console.log(ctx.baseDir + ctx.libsFolder);
 	    try {		    	
-	    	process.chdir(ctx.baseDir);
-			// Should be the other way arround
-			pluginExecute('linklocal -r',function (err, stdout, stderr) { 
-				// All dependencies have been copied, but we need to link all packages from the repo to avoid installing again on an update
-				if (typeof stdout === "string") {
-					var allDependencies = stdout.split("\n");
-					if (allDependencies instanceof Array && allDependencies.length > 0) {					
-						var commands = "";
-						var foldersToDelete = [];						
-						allDependencies.filter(function(dependencyRelativePath) {return dependencyRelativePath !== "";}).forEach(function(dependencyRelativePath) {						
-							var dependencyName = dependencyRelativePath.split("\\").pop();																					
-							if (dependencyName === "cmf.mes.lbos") {dependencyName = "cmf.lbos";}												
-							var dependencyToDelete = dependencyName;									
-							if (dependencyName === "@angular") {dependencyToDelete = "angular";}
-							foldersToDelete.push(ctx.baseDir + ctx.libsFolder + dependencyToDelete);																				
-							commands += 'mklink /j ' + dependencyName + ' "..\\' + dependencyRelativePath + '" & ';	
-						});											
-						// We need to delete the folder, otherwise the link won't come through
-						pluginDel.sync(foldersToDelete, { force: true });	
-						pluginExecute(commands, { cwd: ctx.baseDir + ctx.libsFolder });
-					}
+			linklocal.recursive(ctx.baseDir, function (err, linked) {
+				if (err instanceof Error) {
+					throw err;
+				} else if (linked instanceof Array) {					
+					var symLinkCommands = "", foldersToDelete = []
+					linked.forEach(function(dependency) {
+						var dependencyName = dependency.from.split("\\").pop();
+						if (dependencyName === "angular") {dependencyName = "@angular";}
+						foldersToDelete.push(ctx.baseDir + ctx.libsFolder + dependency.from.split("\\").pop());														
+						symLinkCommands += 'mklink /j ' + dependencyName + ' "' + dependency.to + '" & ';	
+					});
+					// We need to delete the folder, otherwise the link won't come through
+					pluginDel.sync(foldersToDelete, { force: true });	
+					// We create all links in one shot
+					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });
+					callback();
 				}
-				callback(); 
-			});				  			
-		}catch(ex) {
-			console.log(ex);
-			callback();
-		}
-	}); 
-
-	gulp.task('__cleanLibs',  function (callback) {	
-	    // If we clean the libsFolder, we alway get a clean install
-		// There is an exception here, which is the webApp for customized projects. We can't delete the libs folder as we would be removing the UXFab release
-		//>>>>>>>>>>>>>>>>Customization<<<<<<<<<<<<<<<<<<<<<<<<<
-		if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
-			pluginDel.sync([ctx.baseDir + ctx.libsFolder], { force: true });	
-		}
-		callback();
-	}); 
-
-   
-    /*
-    * Install typings from npm @types
-    */ 
-    gulp.task('__npmInstall',  function (callback) {	
-	    try {	
-	    	process.chdir(ctx.baseDir);
-			// Should be the other way arround
-			pluginExecute('npm install --only=production', callback);
-		}catch(ex) {
+			});
+		} catch(ex) {
 			console.error(ex);
 			callback();
 		}
 	}); 
-
-	/**
-     * Removes stale files and directories. After this a new install is required.
-     */
-    gulp.task('purge', function (callback) {
-        pluginDel([            
-            ctx.baseDir + ctx.libsFolder,
-            ctx.baseDir + ctx.metadataFileName,
-            ctx.baseDir + "obj",
-            ctx.baseDir + "bin"], { force: true }, callback);
-    });
 
      /**
      * Installation Task
