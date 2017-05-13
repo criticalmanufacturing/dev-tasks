@@ -97,12 +97,15 @@ module.exports = function (gulpWrapper, ctx) {
 				if (err instanceof Error) {
 					throw err;
 				} else if (linked instanceof Array) {					
-					var symLinkCommands = "", foldersToDelete = []
+					var symLinkCommands = "", foldersToDelete = [], symLinkPaths = [];
 					linked.forEach(function(dependency) {
-						var dependencyName = dependency.from.split("\\").pop();
-						if (dependencyName === "angular") {dependencyName = "@angular";}
-						foldersToDelete.push(ctx.baseDir + ctx.libsFolder + dependency.from.split("\\").pop());														
-						symLinkCommands += 'mklink /j ' + dependencyName + ' "' + dependency.to + '" & ';	
+						if (!symLinkPaths.includes(dependency.to)) {
+							var dependencyName = dependency.from.split("\\").pop();
+							if (dependencyName === "angular") {dependencyName = "@angular";}
+							foldersToDelete.push(ctx.baseDir + ctx.libsFolder + dependency.from.split("\\").pop());
+							symLinkCommands += 'mklink /j ' + dependencyName + ' "' + dependency.to + '" & ';	
+							symLinkPaths.push(dependency.to);
+						}
 					});
 					// We need to delete the folder, otherwise the link won't come through
 					pluginDel.sync(foldersToDelete, { force: true });	
