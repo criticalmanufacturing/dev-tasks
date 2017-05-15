@@ -108,7 +108,9 @@ module.exports = function (gulpWrapper, ctx) {
 						}
 					});
 					// We need to delete the folder, otherwise the link won't come through
-					pluginDel.sync(foldersToDelete, { force: true });	
+					if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
+						pluginDel.sync(foldersToDelete, { force: true });	
+					}
 					// We create all links in one shot
 					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });
 					callback();

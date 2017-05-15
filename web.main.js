@@ -8,15 +8,26 @@ var pluginDel = require('del');
 var pluginShell = require('gulp-shell');
 var pluginCallback = require("gulp-callback");
 var fs = require("fs");
+var fsExtra = require("fs-extra");
 var uuid = require('uuid');
 var utils = require('./utils.js');
-
 
 module.exports = function (gulpWrapper, ctx) {
     
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
     var typescriptCompilerPath = ctx.__repositoryRoot + '/node_modules/typescript/bin/tsc';
+    var getDirectories = function (path, startsWith) {
+        try {
+            var directory = fs.readdirSync(path);
+            return directory.filter(function (file) {                
+                return fs.statSync(path + '/' + file).isDirectory() && file.startsWith(startsWith);
+            });
+
+        } catch (e) {
+            return [];
+        }
+    };
 
     /**
      * Compile typescript files
@@ -34,6 +45,39 @@ module.exports = function (gulpWrapper, ctx) {
 
         var tempFileName = ctx.baseDir + uuid.v4() + ".zip";
 
+        // We need to go through all package.json of all cmf packages and update the relative paths to reflect a production environment.
+        // Relative paths can't reference the dev environment as they will be all at the same level        
+        console.log("Changing all package.json to reflect productive environment.");
+        var foldersToChange = getDirectories(ctx.baseDir + ctx.libsFolder, ctx.packagePrefix), updateCounter = 0;
+        if (foldersToChange instanceof Array && foldersToChange && foldersToChange.length > 0) {
+            // Include the package.json in the app's root
+            foldersToChange = foldersToChange.map(function(folder) { return { path: ctx.baseDir + ctx.libsFolder + folder + "/package.json", prefix: "file:../"};});
+            foldersToChange.push({path: ctx.baseDir + "package.json"} );
+            foldersToChange.forEach(function(folder) {                       
+                var packageJSONObject = fsExtra.readJsonSync(folder.path), relativePath = "", isUpdatable = false;
+                if (packageJSONObject && packageJSONObject.dependencies instanceof Object) {                                        
+                    for (var property in packageJSONObject.dependencies) {
+                        if (folder.prefix == null) {                        
+                            delete packageJSONObject.dependencies[property]; // We can't allow the property in the app's package.json to follow, otherwise "npm i" will alter the release and it's pointless
+                        } else if (typeof packageJSONObject.dependencies[property] === "string" && packageJSONObject.dependencies[property].startsWith("file:")) {                                                        
+                            if (typeof folder.prefix === "string") {
+                                packageJSONObject.dependencies[property]  = folder.prefix + property;    
+                            }                             
+                            if (property === "angular") {
+                                packageJSONObject.dependencies[property]  = folder.prefix + "@angular";
+                            }
+                            isUpdatable = true;
+                        }                        
+                    }                    
+                }
+                if (isUpdatable === true) {
+                    fsExtra.writeJsonSync(folder.path, packageJSONObject);    
+                    updateCounter++;
+                }                
+            });
+        }
+        console.log(updateCounter + " files changed");
+        
         if (!fs.existsSync(deployPath)){
             fs.mkdirSync(deployPath);
         }else{
@@ -82,26 +126,6 @@ module.exports = function (gulpWrapper, ctx) {
                 , { cwd: ctx.baseDir }));
                 
     });
-
-    gulp.task('deploy-tasks', function(cb){
-    var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY,
-        name = pluginYargs.name || "cmf.html.dev.zip";
-
-    deployPath = (deployPath || "") + name;
-
-    /*if(pluginYargs.moduleName){
-        deployPath += "\\" + pluginYargs.moduleName + ".zip";
-    } */       
-
-    return gulp.src('').pipe(
-        pluginShell(
-            "\"C:\\Program Files\\7-Zip\\7z\" a "
-            + deployPath +
-            ' -i@"' + __dirname + '\\deploy\\scaffolding.deploy.include.txt"' +
-            ' -x@"' + __dirname + '\\deploy\\scaffolding.deploy.exclude.txt"' 
-            , { cwd: ctx.baseDir + "../../../COREHTML"  }));
-            
-});   
 
     /**
     * Clean all libs
