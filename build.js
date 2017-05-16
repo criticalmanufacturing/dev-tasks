@@ -331,6 +331,11 @@ module.exports = function (gulpWrapper, ctx) {
                                             { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
                                         ]
                                     }))
+                                    .pipe(pluginIf(isCustomizedProject === true,  pluginReplace({
+                                        patterns: [                                                                                                                    
+                                            { match: new RegExp("(" + customizationFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
+                                        ]
+                                    })))
                                     .pipe(pluginIf(language === i18n.startupCultureSuffix,  pluginReplace({
                                         // When producing the i18n resource file for the DEFAULT culture, we need to convert register names from default to specific, so "/i18n/main.default" become "/i18n/main.pt-PT" or "/i18n/main.en-US". The US is very important because it is the default language
                                         patterns: [                                           
