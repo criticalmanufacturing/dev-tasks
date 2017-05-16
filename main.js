@@ -1,5 +1,6 @@
 var utils = require('./utils.js');
 var __CONSTANTS = require('./context.json');
+var cmfDevTasksConfig = require('../../.cmf.dev.tasks.json');
 
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;
@@ -34,7 +35,7 @@ module.exports = function (gulp, ctx) {
     });
 
     // Please do not comment remove the next line as it will be used by the scaffolding process to set the repository prefix
-    ctx.packagePrefix = "cmf";
+    ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
     ctx.isCustomized = ctx.packagePrefix !== "cmf";
     if (gulp == null) {return;}
 	
