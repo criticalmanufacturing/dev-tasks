@@ -1,6 +1,6 @@
 {
-  "name": "cmf.dev.tasks",
-  "version": "1.0.7",
+  "name": "@criticalmanufacturing/dev-tasks",
+  "version": "1.0.8",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {

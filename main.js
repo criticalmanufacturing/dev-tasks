@@ -1,6 +1,6 @@
 var utils = require('./utils.js');
 var __CONSTANTS = require('./context.json');
-var cmfDevTasksConfig = require('../../.cmf.dev.tasks.json');
+var cmfDevTasksConfig = require('../../../.cmf.dev.tasks.json');
 
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;

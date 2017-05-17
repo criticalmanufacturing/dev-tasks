@@ -16,7 +16,7 @@ module.exports = function (gulpWrapper, ctx) {
     
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
-    var typescriptCompilerPath = ctx.__repositoryRoot + '/node_modules/typescript/bin/tsc';
+    var typescriptCompilerPath = ctx.__repositoryRoot + '/typescript/bin/tsc';
     var getDirectories = function (path, startsWith) {
         try {
             var directory = fs.readdirSync(path);
@@ -200,8 +200,7 @@ module.exports = function (gulpWrapper, ctx) {
                     } else if (req.method == 'GET') {
 
                         // Check if the static resource exists and provide a 404 when it doesn't. We need to strip any query parameter, like the CMFCacheId
-                        if (!isFile(ctx.baseDir + req.url.split("?").shift())) {
-                            console.error("The following resource was not found " + ctx.baseDir + req.url.split("?").shift());
+                        if (!isFile(ctx.baseDir + req.url.split("?").shift())) {                                                        
                             res.statusCode = 404;                            
                             res.write("No static resource found.");
                             return res.end();

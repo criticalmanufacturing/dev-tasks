@@ -62,7 +62,7 @@ module.exports = function (gulpWrapper, ctx) {
         customizationFolderName = customizationFolderName.pop();                
     }
 
-    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
+    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/typescript/bin/tsc');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
     var excludei18nAndMetadata = function(isCore) {        
@@ -430,8 +430,8 @@ module.exports = function (gulpWrapper, ctx) {
         });
     });
 
-    gulp.task("__build-typescript", function (callback) {        
-        return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
+    gulp.task("__build-typescript", function (callback) {           
+        return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
     });
 
     gulp.task("__build-less", function (callback) {
