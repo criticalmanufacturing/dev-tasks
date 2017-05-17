@@ -35,7 +35,7 @@ module.exports = function (gulp, ctx) {
     });
 
     // Please do not comment remove the next line as it will be used by the scaffolding process to set the repository prefix
-    ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
+    ctx.packagePrefix = cmfDevTasksConfig.packagePrefix || "cmf";
     ctx.isCustomized = ctx.packagePrefix !== "cmf";
     if (gulp == null) {return;}
 	
