@@ -28,6 +28,15 @@ module.exports = function (gulpWrapper, ctx) {
             return [];
         }
     };
+    function isFile(path) {
+        var result = true;
+        try {
+            fs.accessSync(path, fs.F_OK);                       
+        } catch (e) {
+            result = false;
+        }
+        return result;
+    }
 
     /**
      * Compile typescript files
@@ -174,13 +183,12 @@ module.exports = function (gulpWrapper, ctx) {
                 port: pluginYargs.port,
                 livereload: false,
                 directoryListing: false,
-                open: pluginYargs.open ? `http://localhost:${pluginYargs.port}/` : false,
-                fallback: rootDir + 'index.html',
+                open: pluginYargs.open ? `http://localhost:${pluginYargs.port}/` : false,                
                 middleware: function (req, res, next) {
                     var url = req.url.split("?").shift();
 
                     if (req.method == 'GET' && url.indexOf(".") < 0) {
-                        // We request the initial index.html and we inject a global that will the app know it is in dev-mode, by default the application runs in bundle-mode
+                        // This is a fallback. We request the initial index.html and we inject a global that will the app know it is in dev-mode, by default the application runs in bundle-mode
                         var indexContent = fs.readFileSync(ctx.baseDir + 'index.html').toString();
                         indexContent = indexContent.replace(new RegExp("<head>"), function (match) {
                             return match + "<script>__CMFInternal__DevMode=true;</script>";
@@ -189,43 +197,55 @@ module.exports = function (gulpWrapper, ctx) {
                         res.writeHead(200, { 'Content-Type': 'text/html' });
                         res.write(indexContent);
                         res.end();
-                    } else if (req.method == 'GET' && url.endsWith("metadata.js")) {
-                        var urlArray = url.split("/");
-                        if (urlArray[urlArray.length - 1] !== "metadata.js") {
-                            // Let's check which module we are searching
-                            var metadataFileName = urlArray[urlArray.length - 1];
-                            var moduleName = metadataFileName.replace(".metadata.js", "");
-                            // Get the proper metadata file
-                            var metadataContent = fs.readFileSync(ctx.baseDir + "node_modules/" + moduleName + "/src/" + metadataFileName).toString();                                             
-                            var bundlerFoldersObj = { "components": [], "directives": [], "pipes": [], "widgets": [], "dataSources": [], "converters": [] };
-                            for (var bundleName in bundlerFoldersObj) {
-                                // There has to be a better way
-                                metadataContent = metadataContent.replace(new RegExp(bundleName + "\: \[[\\s\\S]*?\],"), function (match) {                                    
-                                    bundlerFoldersObj[bundleName] = utils.fs.getDirectories(ctx.baseDir + "node_modules/" + moduleName + "/src/" + bundleName);
-                                    return bundleName + ": [" +
-                                        bundlerFoldersObj[bundleName].map(function (entry) { return "'" + entry + "'" }) + "],";
-                                });
-                            };
-                            // After all bundle folders are processed, then we can move to the i18n resources which may be available in all bundle folders
-                            var partiali18nContent = "";
-                            var isFirst = true;
-                            for (var bundleName in bundlerFoldersObj) {                                
-                                bundlerFoldersObj[bundleName].forEach(function(folder) {
-                                    var i18nFolder = bundleName + "/" + folder + "/i18n/";
-                                    if (utils.fs.isDirectory(ctx.baseDir + "node_modules/" + moduleName + "/src/" + i18nFolder)) {
-                                        partiali18nContent += ((isFirst) ? "" : ",") + "'" + i18nFolder + folder + ".default'";
-                                        isFirst = false;
-                                    }                                    
-                                });                                
-                            };                            
-                            if (partiali18nContent !== "") {
-                                metadataContent = metadataContent.replace(new RegExp("i18n\: \[[\\s\\S]*?\],"), function (match) {                                                                    
-                                    return "i18n: [" + partiali18nContent + "],";
-                                });
-                            }
-                            // Also de metadata file normally asks for the module's main i18n resource by using the "./i18n/main.default". We need to replace this dependency with "cmf.core.shell/src/i18n/i18n"
-                            metadataContent = metadataContent.replace("./i18n/main.default", moduleName + "/src/i18n/main.default");
-                            writeOK(res, metadataContent);                            
+                    } else if (req.method == 'GET') {
+
+                        // Check if the static resource exists and provide a 404 when it doesn't. We need to strip any query parameter, like the CMFCacheId
+                        if (!isFile(ctx.baseDir + req.url.split("?").shift())) {
+                            console.error("The following resource was not found " + ctx.baseDir + req.url.split("?").shift());
+                            res.statusCode = 404;                            
+                            res.write("No static resource found.");
+                            return res.end();
+                        } else if (url.endsWith("metadata.js")) {
+                        
+                            var urlArray = url.split("/");
+                            if (urlArray[urlArray.length - 1] !== "metadata.js") {
+                                // Let's check which module we are searching
+                                var metadataFileName = urlArray[urlArray.length - 1];
+                                var moduleName = metadataFileName.replace(".metadata.js", "");
+                                // Get the proper metadata file
+                                var metadataContent = fs.readFileSync(ctx.baseDir + "node_modules/" + moduleName + "/src/" + metadataFileName).toString();                                             
+                                var bundlerFoldersObj = { "components": [], "directives": [], "pipes": [], "widgets": [], "dataSources": [], "converters": [] };
+                                for (var bundleName in bundlerFoldersObj) {
+                                    // There has to be a better way
+                                    metadataContent = metadataContent.replace(new RegExp(bundleName + "\: \[[\\s\\S]*?\],"), function (match) {                                    
+                                        bundlerFoldersObj[bundleName] = utils.fs.getDirectories(ctx.baseDir + "node_modules/" + moduleName + "/src/" + bundleName);
+                                        return bundleName + ": [" +
+                                            bundlerFoldersObj[bundleName].map(function (entry) { return "'" + entry + "'" }) + "],";
+                                    });
+                                };
+                                // After all bundle folders are processed, then we can move to the i18n resources which may be available in all bundle folders
+                                var partiali18nContent = "";
+                                var isFirst = true;
+                                for (var bundleName in bundlerFoldersObj) {                                
+                                    bundlerFoldersObj[bundleName].forEach(function(folder) {
+                                        var i18nFolder = bundleName + "/" + folder + "/i18n/";
+                                        if (utils.fs.isDirectory(ctx.baseDir + "node_modules/" + moduleName + "/src/" + i18nFolder)) {
+                                            partiali18nContent += ((isFirst) ? "" : ",") + "'" + i18nFolder + folder + ".default'";
+                                            isFirst = false;
+                                        }                                    
+                                    });                                
+                                };                            
+                                if (partiali18nContent !== "") {
+                                    metadataContent = metadataContent.replace(new RegExp("i18n\: \[[\\s\\S]*?\],"), function (match) {                                                                    
+                                        return "i18n: [" + partiali18nContent + "],";
+                                    });
+                                }
+                                // Also de metadata file normally asks for the module's main i18n resource by using the "./i18n/main.default". We need to replace this dependency with "cmf.core.shell/src/i18n/i18n"
+                                metadataContent = metadataContent.replace("./i18n/main.default", moduleName + "/src/i18n/main.default");
+                                writeOK(res, metadataContent);  
+                            } else {
+                                next();
+                            }                         
                         } else {
                             next();
                         }
