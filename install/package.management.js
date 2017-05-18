@@ -2,7 +2,8 @@ var fs = require("fs"),
 	pluginRename = require('gulp-rename'), 
 	pluginDel = require("del"), 
 	pluginExecute = require("child_process").exec,
-	linklocal = require("linklocal");
+	pluginLinklocal = require("linklocal"),
+	pluginYargs = require('yargs').argv;;
 
 module.exports = function (gulpWrapper, ctx) {	
     var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq, getDirectories = function (path) {
@@ -46,7 +47,7 @@ module.exports = function (gulpWrapper, ctx) {
 	    try {	
 	    	process.chdir(ctx.baseDir);
 			// Should be the other way arround
-			pluginExecute('npm install --only=production', callback);
+			pluginExecute('npm install', callback);
 		} catch(ex) {
 			console.error(ex);
 			callback();
@@ -93,7 +94,7 @@ module.exports = function (gulpWrapper, ctx) {
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
 	    try {		    	
-			linklocal.recursive(ctx.baseDir, function (err, linked) {
+			pluginLinklocal.recursive(ctx.baseDir, function (err, linked) {
 				if (err instanceof Error) {
 					throw err;
 				} else if (linked instanceof Array) {					
@@ -127,7 +128,11 @@ module.exports = function (gulpWrapper, ctx) {
      * Remarks: only needs to be run the first time or after a git pull
      */
     gulp.task('install', function (callback) {
+		var taskArray = ['__npmInstall', '__copyLocalTypings', '__linkDependencies'];
+		if (pluginYargs.clean) {
+			taskArray.unshift('__cleanLibs');
+		}
 		// The best approach would be linking first and then make an "npm -i" but there is a bug on npm that steals the dependencies packages, so for instance, it would steal lbo's moment when installing cmf.core. We do it the other way arround to prevent this bug (https://github.com/npm/npm/issues/10343)
-		seq(['__cleanLibs', '__npmInstall', '__copyLocalTypings', '__linkDependencies', ], callback);		
+		seq(taskArray, callback);		
 	});
 };
