@@ -68,6 +68,7 @@ module.exports = function (gulpWrapper, ctx) {
                     for (var property in packageJSONObject.dependencies) {
                         if (folder.prefix == null) {                        
                             delete packageJSONObject.dependencies[property]; // We can't allow the property in the app's package.json to follow, otherwise "npm i" will alter the release and it's pointless
+                            isUpdatable = true;
                         } else if (typeof packageJSONObject.dependencies[property] === "string" && packageJSONObject.dependencies[property].startsWith("file:")) {                                                        
                             if (typeof folder.prefix === "string") {
                                 packageJSONObject.dependencies[property]  = folder.prefix + property;    
