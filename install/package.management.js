@@ -90,14 +90,15 @@ module.exports = function (gulpWrapper, ctx) {
 	});
 
 	/**
-	 * Recursively links all npm packages.
+	 * Recursively outputs all links so they we can pick up this list and apply all links to the current package.
+	 * Calling linklocal recursevelly is not safe in a customization environement as it will create links on release packages causing type issues during build.
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
-	    try {		    	
-			pluginLinklocal.recursive(ctx.baseDir, function (err, linked) {
+	    try {				
+			pluginLinklocal.list.recursive(ctx.baseDir, function (err, linked) {
 				if (err instanceof Error) {
 					throw err;
-				} else if (linked instanceof Array) {					
+				} else if (linked instanceof Array) {						
 					var symLinkCommands = "", foldersToDelete = [], symLinkPaths = [];
 					linked.forEach(function(dependency) {
 						if (!symLinkPaths.includes(dependency.to)) {
