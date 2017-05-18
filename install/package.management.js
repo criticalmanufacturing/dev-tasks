@@ -44,13 +44,17 @@ module.exports = function (gulpWrapper, ctx) {
     * Installs all npm packages
     */ 
     gulp.task('__npmInstall',  function(callback) {	
-	    try {	
-	    	process.chdir(ctx.baseDir);
-			// Should be the other way arround
-			pluginExecute('npm install', callback);
-		} catch(ex) {
-			console.error(ex);
-			callback();
+    	if (ctx.isCustomized === true && ctx.type === "webApp") {
+    		callback();		    
+		} else {
+			try {	
+		    	process.chdir(ctx.baseDir);
+				// Should be the other way arround
+				pluginExecute('npm install', callback);
+			} catch(ex) {
+				console.error(ex);
+				callback();
+			}
 		}
 	}); 
 
@@ -94,7 +98,13 @@ module.exports = function (gulpWrapper, ctx) {
 	 * Calling linklocal recursevelly is not safe in a customization environement as it will create links on release packages causing type issues during build.
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
-	    try {				
+	    try {					    	
+			if (ctx.isCustomized === true && ctx.type === "webApp") {
+				// During customization, when installing the web app we just need to link what's directly on the package.json
+				pluginLinklocal(ctx.baseDir,function (err) { if (err!= null) {console.error(err)}});
+				callback();
+				return;
+			}			
 			pluginLinklocal.list.recursive(ctx.baseDir, function (err, linked) {
 				if (err instanceof Error) {
 					throw err;
@@ -115,13 +125,12 @@ module.exports = function (gulpWrapper, ctx) {
 					}
 					// We create all links in one shot
 					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });
-					callback();
 				}
 			});
 		} catch(ex) {
 			console.error(ex);
 			callback();
-		}
+		}		
 	}); 
 
      /**
