@@ -114,8 +114,9 @@ module.exports = function (gulpWrapper, ctx) {
 						pluginDel.sync(foldersToDelete, { force: true });	
 					}
 					// We create all links in one shot
-					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });
+					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });					
 				}
+				callback();
 			});
 		} catch(ex) {
 			console.error(ex);
