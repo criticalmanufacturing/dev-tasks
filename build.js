@@ -402,7 +402,7 @@ module.exports = function (gulpWrapper, ctx) {
                 additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
             }
                     
-            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts", ctx.baseDir + "index.d.ts"], { cwd: ctx.baseDir })                        
+            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
             .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
             .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
             .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
