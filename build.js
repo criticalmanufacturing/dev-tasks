@@ -568,9 +568,9 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     /**
-     * Generates a PO file from all i18n/*.ts files and save it on baseDir
+     * Transforms i18n .ts files into .po files and save it on baseDir
      */
-    gulp.task('i18n-generate-po', function() {
+    gulp.task('i18n-ts2po', function() {
         return gulp
             .src([
                 path.join(ctx.baseDir, "**/i18n/*.ts"),
@@ -585,9 +585,10 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     /**
-     * Restores i18n/*.ts files from previously .po generated files
+     * Transforms i18n .po files into .ts files.
+     * It uses the BaseDir to store .ts files.
      */
-    gulp.task('i18n-restore-po', function() {
+    gulp.task('i18n-po2ts', function() {
         return gulp
             .src([
                 path.join(ctx.baseDir, "*.po")
