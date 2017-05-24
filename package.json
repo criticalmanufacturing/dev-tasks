@@ -43,8 +43,7 @@
     "gulp-batch": "^1.0.5",
     "gulp-watch": "^4.2.4",
     "karma-ie-launcher": "^0.2.0",
-    "typescript": "2.2.1",
-    "linklocal": "~2.8.0",
+    "typescript": "2.2.1",    
     "fs-extra": "~3.0.1"
   },
   "devDependencies": {

@@ -1,8 +1,9 @@
 var fs = require("fs"),
 	pluginRename = require('gulp-rename'), 
 	pluginDel = require("del"), 
-	pluginExecute = require("child_process").exec,
-	pluginLinklocal = require("linklocal"),
+	pluginExecute = require("child_process").exec,	
+	pluginfsExtra = require("fs-extra"),
+	pluginPath = require('path'),
 	pluginYargs = require('yargs').argv;;
 
 module.exports = function (gulpWrapper, ctx) {	
@@ -12,10 +13,7 @@ module.exports = function (gulpWrapper, ctx) {
             return directory.filter(function (file) {
                 return fs.statSync(path + '/' + file).isDirectory();
             });
-
-		} catch (e) {
-			return [];
-		}
+		} catch (e) {return [];}
 	};
 
 	/**
@@ -90,34 +88,30 @@ module.exports = function (gulpWrapper, ctx) {
 	});
 
 	/**
-	 * Recursively outputs all links so they we can pick up this list and apply all links to the current package.
-	 * Calling linklocal recursevelly is not safe in a customization environement as it will create links on release packages causing type issues during build.
+	 * Recursively follows all dependencies defined in the cmfLinkDependencies object of the package.json. All nested dependencies get linked.
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
-	    try {					    				
-			pluginLinklocal.list.recursive(ctx.baseDir, function (err, linked) {
-				if (err instanceof Error) {
-					throw err;
-				} else if (linked instanceof Array) {						
-					var symLinkCommands = "", foldersToDelete = [], symLinkPaths = [];
-					linked.forEach(function(dependency) {
-						if (!symLinkPaths.includes(dependency.to)) {
-							var dependencyName = dependency.from.split("\\").pop();
-							if (dependencyName === "angular") {dependencyName = "@angular";}
-							foldersToDelete.push(ctx.baseDir + ctx.libsFolder + dependency.from.split("\\").pop());
-							symLinkCommands += 'mklink /j ' + dependencyName + ' "' + dependency.to + '" & ';	
-							symLinkPaths.push(dependency.to);
-						}
-					});
-					// We need to delete the folder, otherwise the link won't come through
-					if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
-						pluginDel.sync(foldersToDelete, { force: true });	
-					}
-					// We create all links in one shot
-					pluginExecute(symLinkCommands, { cwd: ctx.baseDir + ctx.libsFolder });					
+	    try {	
+			var packagesToLink = [];
+			(function createLinks(packagesToLink, packageFolder) {
+				const packageObj = pluginfsExtra.readJsonSync(packageFolder + '/package.json');
+				if (typeof packageObj.cmfLinkDependencies === "object") {
+					Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
+						const package = { name: dependencyName, path: pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()) };
+						packagesToLink.push(package);
+						createLinks(packagesToLink, package.path);
+					})
 				}
-				callback();
-			});
+			})(packagesToLink, ctx.baseDir);
+			if (packagesToLink.length > 0) {
+				// We need to delete the folder, otherwise the link won't come through
+				if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
+					pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });	
+				}			
+				pluginExecute(packagesToLink.map((package)=>`mklink /j ${package.name} "${package.path}"`).join(" & "), { cwd: ctx.baseDir + ctx.libsFolder });	
+				console.log(`${packagesToLink.length} packages linked.`);				
+			}
+			callback();
 		} catch(ex) {
 			console.error(ex);
 			callback();
