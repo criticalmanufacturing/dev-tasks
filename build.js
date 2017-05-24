@@ -21,6 +21,7 @@ var spawn = require('child_process').spawn;
 var pluginIf = require('gulp-if');
 var pluginWalker = require('async-walker');
 var pluginUtil = require('gulp-util');
+var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -516,6 +517,9 @@ module.exports = function (gulpWrapper, ctx) {
             //cb();
         });
     });
+    //#endregion
+
+    //#region Generators: i18n
 
     function ensureAllCultures(folder, unitName) {
         var files = fs.readdirSync(folder).filter(file => file.endsWith(".ts") && !file.endsWith("d.ts"));
@@ -541,13 +545,13 @@ module.exports = function (gulpWrapper, ctx) {
 
     //i personally think this should be in install and not build, but all i18n stuff is here, so I'm keeping it for coherence
     gulp.task('create-missing-i18n', function(cb) {
-		//check all i18n places and check if all languages are present. If not, create a template file
-		var maini18n = path.join(ctx.baseDir, "src", "i18n");
+        //check all i18n places and check if all languages are present. If not, create a template file
+        var maini18n = path.join(ctx.baseDir, "src", "i18n");
         if (fs.existsSync(maini18n)) {
             ensureAllCultures(maini18n, "main");
         }
 
-		foldersToInspect.forEach(folder => {
+        foldersToInspect.forEach(folder => {
             var f = path.join(ctx.baseDir, "src", folder); 
             if (fs.existsSync(f)) {
                 var units = fs.readdirSync(f);
@@ -559,9 +563,44 @@ module.exports = function (gulpWrapper, ctx) {
                 });
                 
             }
-		})
+        })
         cb();
     });
+
+    /**
+     * Transforms i18n .ts files into .po files and save it on baseDir
+     */
+    gulp.task('i18n-ts2po', function() {
+        return gulp
+            .src([
+                path.join(ctx.baseDir, "**/i18n/*.ts"),
+                "!**/*.d.ts"
+            ], { cwd: ctx.baseDir })
+            .pipe(pluginI18nTransform({
+                base: ctx.baseDir,
+                languages: i18n.supportedCultures,
+                dest: "pot"
+            }))
+            .pipe(gulp.dest(ctx.baseDir));
+    });
+
+    /**
+     * Transforms i18n .po files into .ts files.
+     * It uses the BaseDir to store .ts files.
+     */
+    gulp.task('i18n-po2ts', function() {
+        return gulp
+            .src([
+                path.join(ctx.baseDir, "*.po")
+            ], { cwd: ctx.baseDir })
+            .pipe(pluginI18nTransform({
+                base: ctx.baseDir,
+                languages: i18n.supportedCultures,
+                dest: "ts"
+            }))
+            .pipe(gulp.dest(ctx.baseDir));
+    });
+
     //#endregion
 };
 
