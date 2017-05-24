@@ -107,7 +107,7 @@ module.exports = function (gulpWrapper, ctx) {
 
     var commonRegexPatterns = [
         { match: new RegExp("cmf.mes.lbos", "gi"), replacement: 'cmf.lbos' },        
-        { match: new RegExp("\"(" + ctx.__CONSTANTS.LibraryFolderName + "|" + ctx.__CONSTANTS.TauraFolderName + "|" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/(src\/)*(packages\/)*", "gi"), replacement: '"' }                
+        { match: new RegExp("\"(" + ctx.__CONSTANTS.LibraryFolderName + "|" + ctx.__CONSTANTS.TauraFolderName + "|" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + "|" + ctx.__CONSTANTS.MesageBusFolderName + ")\/(src\/)*(packages\/)*", "gi"), replacement: '"' }                
         ];
 
     if (!ctx.baseDir.endsWith('/')) {
