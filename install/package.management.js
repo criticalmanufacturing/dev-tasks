@@ -117,7 +117,7 @@ module.exports = function (gulpWrapper, ctx) {
 							}
 
 							// Avoid duplicates and do not allow linking cmf packages in customized web apps
-							if (!(ctx.isCustomized === true && ctx.type === "webApp" && package.name.startsWith("cmf")) && packagesToLink.some((packageToLink) => package.name === packagesToLink.name) === false) {					
+							if (!(ctx.isCustomized === true && ctx.type === "webApp" && package.name.startsWith("cmf")) && packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {					
 								packagesToLink.push(package);
 								createLinks(packagesToLink, package.path);
 							}												
