@@ -97,9 +97,29 @@ module.exports = function (gulpWrapper, ctx) {
 				const packageObj = pluginfsExtra.readJsonSync(packageFolder + '/package.json');
 				if (typeof packageObj.cmfLinkDependencies === "object") {
 					Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
-						const package = { name: dependencyName, path: pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()) };
-						packagesToLink.push(package);
-						createLinks(packagesToLink, package.path);
+						const package = { name: dependencyName };	
+						/**
+						 * In customization projects:  
+						 * - if the dependency starts with "cmf" we could immediately link to the web app
+						 * - if it does not start with "cmf" it's either a link to a customized package or it can still be something that's not customized, like "@angular".
+						 * We will try to respect what's in the link and follow it:
+						 * - if it does not exist, then we try to look it up in the web app
+						 * - if it exists, most certaintly, it's a link to a customized package
+						 * This approach seems to be the most generic as it does not catalog any exceptions that would be altered later on.
+						 */ 
+						let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()), 
+							webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);						
+						if (ctx.isCustomized === true && dependencyName.startsWith("cmf")) {
+							package.path = webAppLink;															
+						} else {
+							package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;
+						}
+
+						// Avoid duplicates and do not allow linking cmf packages in customized web apps
+						if (!(ctx.isCustomized === true && ctx.type === "webApp" && package.name.startsWith("cmf")) && packagesToLink.some((packageToLink) => package.name === packagesToLink.name) === false) {					
+							packagesToLink.push(package);
+							createLinks(packagesToLink, package.path);
+						}												
 					})
 				}
 			})(packagesToLink, ctx.baseDir);

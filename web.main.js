@@ -54,39 +54,10 @@ module.exports = function (gulpWrapper, ctx) {
 
         var tempFileName = ctx.baseDir + uuid.v4() + ".zip";
 
-        // We need to go through all package.json of all cmf packages and update the relative paths to reflect a production environment.
-        // Relative paths can't reference the dev environment as they will be all at the same level        
-        console.log("Changing all package.json to reflect productive environment.");
-        var foldersToChange = getDirectories(ctx.baseDir + ctx.libsFolder, ctx.packagePrefix), updateCounter = 0;
-        if (foldersToChange instanceof Array && foldersToChange && foldersToChange.length > 0) {
-            // Include the package.json in the app's root
-            foldersToChange = foldersToChange.map(function(folder) { return { path: ctx.baseDir + ctx.libsFolder + folder + "/package.json", prefix: "file:../"};});
-            foldersToChange.push({path: ctx.baseDir + "package.json"} );
-            foldersToChange.forEach(function(folder) {                       
-                var packageJSONObject = fsExtra.readJsonSync(folder.path), relativePath = "", isUpdatable = false;
-                if (packageJSONObject && packageJSONObject.dependencies instanceof Object) {                                        
-                    for (var property in packageJSONObject.dependencies) {
-                        if (folder.prefix == null) {                        
-                            delete packageJSONObject.dependencies[property]; // We can't allow the property in the app's package.json to follow, otherwise "npm i" will alter the release and it's pointless
-                            isUpdatable = true;
-                        } else if (typeof packageJSONObject.dependencies[property] === "string" && packageJSONObject.dependencies[property].startsWith("file:")) {                                                        
-                            if (typeof folder.prefix === "string") {
-                                packageJSONObject.dependencies[property]  = folder.prefix + property;    
-                            }                             
-                            if (property === "angular") {
-                                packageJSONObject.dependencies[property]  = folder.prefix + "@angular";
-                            }
-                            isUpdatable = true;
-                        }                        
-                    }                    
-                }
-                if (isUpdatable === true) {
-                    fsExtra.writeJsonSync(folder.path, packageJSONObject);    
-                    updateCounter++;
-                }                
-            });
-        }
-        console.log(updateCounter + " files changed");
+        // We need to update the app's package.json to clear all cmfLinkDependencies as in customization projects we wouldn't need these links
+        var packageJSONObject = fsExtra.readJsonSync(ctx.baseDir + "package.json");
+        packageJSONObject.cmfLinkDependencies = {};
+        fsExtra.writeJsonSync(ctx.baseDir + "package.json", packageJSONObject);    
         
         if (!fs.existsSync(deployPath)){
             fs.mkdirSync(deployPath);
