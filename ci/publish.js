@@ -2,12 +2,13 @@ var args = require("yargs").argv;
 var fs = require("fs");
 var path = require("path");
 var shell = require('shelljs');
+var exec = require('child_process').execSync;
 
 // Read parameters
 var sourceFolders = args._;
 var tag = args.tag;
-var versionCommand = args.version || "prerelease";
-
+var version = args.version || "prerelease";
+var appendVersion = args.append;
 /** 
  * Helpers 
  */
@@ -18,7 +19,8 @@ function help() {
     console.log("Usage:");
     console.log("\t node publish <source-dir1> <source-dir2> ... --tag <publish-tag>");
     console.log("Options:");
-    console.log("--version <level> - version increment level (see npm version)")
+    console.log("\t --version=<level | version> \t version increment level (see npm version). Default: prerelease");
+    console.log("\t --append \t\t\t just append given version to the current package version");
     console.log("");
 }
 
@@ -37,6 +39,10 @@ function main() {
         help();
         return process.exit(1);
     }
+
+    // console.log("version", version);
+    // console.log("append", appendVersion != null ? "true" : "false");
+    // process.exit(0);
 
     // Iterate over all sources
     sourceFolders.forEach(processSources);
@@ -59,12 +65,21 @@ function publishPackage(source) {
     // Stop if there is no package.json available
     if (!fs.existsSync(path.join(source, "package.json"))) {
         return;
+    }    
+
+    // Update version
+    var targetVersion = version;
+
+    if (appendVersion) {
+        // just append this to the current version
+        var packageConfig = JSON.parse(fs.readFileSync(path.join(source, "package.json"), 'utf8'));
+        targetVersion = `${packageConfig.version}-${version}`
     }
-    
-    shell.pushd(source);
-    shell.exec(`npm version ${versionCommand}`);
-    shell.exec(`npm publish --tag=${tag}`);
-    shell.popd();
+
+    exec(`npm version ${targetVersion}`, {cwd: source});
+
+    // Publish
+    exec(`npm publish --tag=${tag} --git-tag-version=false`);
 }
 
 main();
