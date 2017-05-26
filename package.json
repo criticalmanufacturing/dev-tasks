@@ -37,7 +37,7 @@
     "ncp": "~2.0.0",
     "run-sequence": "~1.2.2",
     "through": "~2.3.8",
-    "typescript": "2.2.1",
+    "typescript": "2.3.3",
     "uuid": "^2.0.2",
     "yargs": "~3.10.0"
   },
