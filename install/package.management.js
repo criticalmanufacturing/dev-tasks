@@ -42,10 +42,15 @@ module.exports = function (gulpWrapper, ctx) {
     * Installs all npm packages (public and private)
     */ 
     gulp.task('__npmInstall',  function(callback) {	
-		try {		    				
-			pluginExecute('npm install', { cwd: ctx.baseDir }, callback);
+		try {								
+			pluginExecute('npm install --silent', { cwd: ctx.baseDir }, function(error, stdout, stderr) {
+				if (error instanceof Error) {
+					console.error(stderr);	
+				} 
+				callback();								
+			});			
 		} catch(ex) {
-			console.error(ex);
+			console.error(ex);			
 			callback();
 		}
 	}); 
