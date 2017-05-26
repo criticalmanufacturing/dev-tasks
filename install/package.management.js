@@ -39,13 +39,11 @@ module.exports = function (gulpWrapper, ctx) {
 	}); 
 
     /*
-    * Installs all npm packages
+    * Installs all npm packages (public and private)
     */ 
     gulp.task('__npmInstall',  function(callback) {	
-		try {	
-	    	process.chdir(ctx.baseDir);
-			// Should be the other way arround
-			pluginExecute('npm install --only=production', callback);
+		try {		    				
+			pluginExecute('npm install', { cwd: ctx.baseDir }, callback);
 		} catch(ex) {
 			console.error(ex);
 			callback();
@@ -54,7 +52,7 @@ module.exports = function (gulpWrapper, ctx) {
 
 	/*
 	* If there is a "local-typings" folder, then the typings inside are not available in their own npm packages or in the npm @types repository.
-	* So we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
+	* In these cases we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
 	*/
 	gulp.task('__copyLocalTypings', function (callback) {
 		var promise = Promise.resolve(null);
