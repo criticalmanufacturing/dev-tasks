@@ -1,7 +1,7 @@
 var fs = require("fs"),
 	pluginRename = require('gulp-rename'), 
 	pluginDel = require("del"), 
-	pluginExecute = require("child_process").exec,	
+	pluginExecute = require("child_process").execSync,	
 	pluginfsExtra = require("fs-extra"),
 	pluginPath = require('path'),
 	pluginYargs = require('yargs').argv;;
@@ -42,17 +42,8 @@ module.exports = function (gulpWrapper, ctx) {
     * Installs all npm packages (public and private)
     */ 
     gulp.task('__npmInstall',  function(callback) {	
-		try {								
-			pluginExecute('npm install --silent', { cwd: ctx.baseDir }, function(error, stdout, stderr) {
-				if (error instanceof Error) {
-					console.error(stderr);	
-				} 
-				callback();								
-			});			
-		} catch(ex) {
-			console.error(ex);			
-			callback();
-		}
+		pluginExecute('npm install --silent', { cwd: ctx.baseDir });
+		callback();		
 	}); 
 
 	/*
