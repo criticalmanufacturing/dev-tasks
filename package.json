@@ -7,6 +7,7 @@
     "@criticalmanufacturing/dev-i18n-transform": "^1.0.0",
     "async-walker": "~0.0.4",
     "del": "~1.2.0",
+    "fs-extra": "~3.0.1",
     "gulp": "^3.9.1",
     "gulp-autoprefixer": "~2.3.1",
     "gulp-batch": "^1.0.5",
@@ -36,20 +37,11 @@
     "karma-systemjs": "~0.8.1",
     "ncp": "~2.0.0",
     "run-sequence": "~1.2.2",
+    "shelljs": "^0.7.7",
     "through": "~2.3.8",
     "typescript": "2.2.1",
     "uuid": "^2.0.2",
-    "yargs": "~3.10.0",
-    "gulp-batch": "^1.0.5",
-    "gulp-watch": "^4.2.4",
-    "karma-ie-launcher": "^0.2.0",
-    "typescript": "2.2.1",    
-    "fs-extra": "~3.0.1"
-  },
-  "devDependencies": {
-
-  },
-  "scripts": {
+    "yargs": "~3.10.0"
   },
   "devDependencies": {},
   "scripts": {},
