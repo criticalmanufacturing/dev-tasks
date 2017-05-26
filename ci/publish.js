@@ -20,7 +20,7 @@ function help() {
     console.log("\t node publish <source-dir1> <source-dir2> ... --tag <publish-tag>");
     console.log("Options:");
     console.log("\t --version=<level | version> \t version increment level (see npm version). Default: prerelease");
-    console.log("\t --append \t\t\t just append given version to the current package version");
+    console.log("\t --append \t\t\t if enabled, append given version to the current package version");
     console.log("");
 }
 
