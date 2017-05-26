@@ -56,6 +56,8 @@ module.exports = function (gulpWrapper, ctx) {
 
         // We need to update the app's package.json to clear all cmfLinkDependencies as in customization projects we wouldn't need these links
         var packageJSONObject = fsExtra.readJsonSync(ctx.baseDir + "package.json");
+        packageJSONObject.dependencies = {};
+        packageJSONObject.optionalDependencies = {};
         packageJSONObject.cmfLinkDependencies = {};
         fsExtra.writeJsonSync(ctx.baseDir + "package.json", packageJSONObject);    
         
