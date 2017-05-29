@@ -101,14 +101,17 @@ module.exports = function (gulpWrapper, ctx) {
 							 * - if it does not exist, then we try to look it up in the web app
 							 * - if it exists, most certaintly, it's a link to a customized package
 							 * This approach seems to be the most generic as it does not catalog any exceptions that would be altered later on.
-							 */ 
-							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()), 
-								webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);						
-							if (ctx.isCustomized === true && dependencyName.startsWith("cmf")) {
-								package.path = webAppLink;															
+							 */ 							 
+							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()),						
+								webAppLink = (ctx.isCustomized === true && fs.existsSync(pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`))) ? 
+								pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`) : 
+								pluginPath.join(packageFolder, `../${package.name}`); // When we are already in the webApp and we need flat dependencies;						
+
+							if (ctx.isCustomized === true && dependencyName.startsWith("cmf")) {								
+								package.path = webAppLink;									
 							} else {
 								package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;
-							}
+							}							
 
 							// Avoid duplicates and do not allow linking cmf packages in customized web apps
 							if (!(ctx.isCustomized === true && ctx.type === "webApp" && package.name.startsWith("cmf")) && packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {					
