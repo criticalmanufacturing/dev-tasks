@@ -7,7 +7,7 @@ var exec = require('child_process').execSync;
 // Read parameters
 var sourceFolders = args._;
 var tag = args.tag;
-var version = args.version || "prerelease";
+var version = args.version;
 var appendVersion = args.append;
 /** 
  * Helpers 
@@ -19,7 +19,7 @@ function help() {
     console.log("Usage:");
     console.log("\t node publish <source-dir1> <source-dir2> ... --tag <publish-tag>");
     console.log("Options:");
-    console.log("\t --version=<level | version> \t version increment level (see npm version). Default: prerelease");
+    console.log("\t --version=<level | version> \t version increment level (see npm version). None: no version bump");
     console.log("\t --append \t\t\t if enabled, append given version to the current package version");
     console.log("");
 }
@@ -39,10 +39,6 @@ function main() {
         help();
         return process.exit(1);
     }
-
-    // console.log("version", version);
-    // console.log("append", appendVersion != null ? "true" : "false");
-    // process.exit(0);
 
     // Iterate over all sources
     sourceFolders.forEach(processSources);
@@ -67,19 +63,25 @@ function publishPackage(source) {
         return;
     }    
 
-    // Update version
-    var targetVersion = version;
+    console.log(`Processing package ${source}`);
 
-    if (appendVersion) {
-        // just append this to the current version
-        var packageConfig = JSON.parse(fs.readFileSync(path.join(source, "package.json"), 'utf8'));
-        targetVersion = `${packageConfig.version}-${version}`
+    // Update version
+    if (version) {
+        var targetVersion = version;
+
+        if (appendVersion) {
+            // just append this to the current version
+            var packageConfig = JSON.parse(fs.readFileSync(path.join(source, "package.json"), 'utf8'));
+            targetVersion = `${packageConfig.version}-${version}`
+        }
+        
+        console.log(`New version: ${targetVersion}`);
+        exec(`npm version ${targetVersion}`, {cwd: source});
     }
 
-    exec(`npm version ${targetVersion}`, {cwd: source});
-
     // Publish
-    exec(`npm publish --tag=${tag} --git-tag-version=false`);
+    console.log(`Publishing with tag: ${tag}`);
+    exec(`npm publish --tag=${tag} --git-tag-version=false`, {cwd: source});
 }
 
 main();
