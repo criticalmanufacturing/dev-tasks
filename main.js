@@ -16,7 +16,7 @@ module.exports = function (gulp, ctx) {
 	// Repository root is a context variable almost always unnecessary.
     // For that reason is here defined as a getter instead of directly calculating its
     Object.defineProperty(ctx, "__repositoryRoot", {
-        configurable: false,
+        configurable: true,
         enumerable: true,
         get: function(){
             return path.normalize(path.join(__dirname, "../.."));
@@ -26,7 +26,7 @@ module.exports = function (gulp, ctx) {
     // Project name is a context variable costly to calculate but not always necessary.
     // For that reason is here defined as a getter instead of always getting the value
     Object.defineProperty(ctx, "__projectName", {
-        configurable: false,
+        configurable: true,
         enumerable: true,
         get: function(){
             var currentProjectPackageFile = utils.fs.tryGetJSONSync(path.normalize(path.join(ctx.__repositoryRoot, "./package.json")));
