@@ -1,9 +1,0 @@
-.gitattributes
-.yo-rc.json
-gulpfile.js
-npm.postinstall.js
-package.json
-apps
-src
-utils
-.vscode\**

@@ -1,5 +1,6 @@
 var utils = require('./utils.js');
 var __CONSTANTS = require('./context.json');
+var cmfDevTasksConfig = require('../../../.dev-tasks.json');
 
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;
@@ -15,7 +16,7 @@ module.exports = function (gulp, ctx) {
 	// Repository root is a context variable almost always unnecessary.
     // For that reason is here defined as a getter instead of directly calculating its
     Object.defineProperty(ctx, "__repositoryRoot", {
-        configurable: false,
+        configurable: true,
         enumerable: true,
         get: function(){
             return path.normalize(path.join(__dirname, "../.."));
@@ -25,7 +26,7 @@ module.exports = function (gulp, ctx) {
     // Project name is a context variable costly to calculate but not always necessary.
     // For that reason is here defined as a getter instead of always getting the value
     Object.defineProperty(ctx, "__projectName", {
-        configurable: false,
+        configurable: true,
         enumerable: true,
         get: function(){
             var currentProjectPackageFile = utils.fs.tryGetJSONSync(path.normalize(path.join(ctx.__repositoryRoot, "./package.json")));
@@ -34,7 +35,7 @@ module.exports = function (gulp, ctx) {
     });
 
     // Please do not comment remove the next line as it will be used by the scaffolding process to set the repository prefix
-    ctx.packagePrefix = "cmf";
+    ctx.packagePrefix = cmfDevTasksConfig.packagePrefix || "cmf";
     ctx.isCustomized = ctx.packagePrefix !== "cmf";
     if (gulp == null) {return;}
 	

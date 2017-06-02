@@ -2,7 +2,7 @@ var path = require('path');
 var util = require('util');
 var ncp = require('ncp').ncp;
 var fs = require("fs");
-
+ 
 var __cwd = path.resolve('.'); //where the process was launched from
 var __tasksdir = __dirname; //where the tools are placed
 //general task dependency plugins
@@ -63,7 +63,7 @@ module.exports = function (gulpWrapper, ctx) {
         customizationFolderName = customizationFolderName.pop();                
     }
 
-    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
+    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/typescript/bin/tsc');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
     var excludei18nAndMetadata = function(isCore) {        
@@ -107,7 +107,7 @@ module.exports = function (gulpWrapper, ctx) {
 
     var commonRegexPatterns = [
         { match: new RegExp("cmf.mes.lbos", "gi"), replacement: 'cmf.lbos' },        
-        { match: new RegExp("\"(" + ctx.__CONSTANTS.LibraryFolderName + "|" + ctx.__CONSTANTS.TauraFolderName + "|" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/(src\/)*(packages\/)*", "gi"), replacement: '"' }                
+        { match: new RegExp("\"(" + ctx.__CONSTANTS.LibraryFolderName + "|" + ctx.__CONSTANTS.TauraFolderName + "|" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + "|" + ctx.__CONSTANTS.MesageBusFolderName + ")\/(src\/)*(packages\/)*", "gi"), replacement: '"' }                
         ];
 
     if (!ctx.baseDir.endsWith('/')) {
@@ -403,7 +403,7 @@ module.exports = function (gulpWrapper, ctx) {
                 additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
             }
                     
-            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts", ctx.baseDir + "index.d.ts"], { cwd: ctx.baseDir })                        
+            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
             .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
             .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
             .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
@@ -431,8 +431,8 @@ module.exports = function (gulpWrapper, ctx) {
         });
     });
 
-    gulp.task("__build-typescript", function (callback) {        
-        return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
+    gulp.task("__build-typescript", function (callback) {           
+        return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
     });
 
     gulp.task("__build-less", function (callback) {

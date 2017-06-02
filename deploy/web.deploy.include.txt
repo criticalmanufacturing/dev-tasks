@@ -9,8 +9,6 @@
 *.ttf
 *.eot
 *.xml
-__bower.json
-.bowerrc
 package.json
 app.ts
 config.json
