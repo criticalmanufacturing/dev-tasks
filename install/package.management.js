@@ -115,16 +115,16 @@ module.exports = function (gulpWrapper, ctx) {
 								webAppLink = (ctx.isCustomized === true && fs.existsSync(pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`))) ? 
 								pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`) : 
 								pluginPath.join(packageFolder, `../${package.name}`); // When we are already in the webApp and we need flat dependencies;						
-
-							if (ctx.isCustomized === true && dependencyName.startsWith("cmf")) {								
+							
+							if (ctx.isCustomized === true && (dependencyName.startsWith("cmf.core") || dependencyName.startsWith("cmf.mes")) && ctx.type !== "webApp") {								
 								package.path = webAppLink;									
 							} else {
-								package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;
-							}							
+								package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;	
+							}						
 
 							// Avoid duplicates and do not allow linking cmf packages in customized web apps
-							if (!(ctx.isCustomized === true && ctx.type === "webApp" && package.name.startsWith("cmf")) && packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {					
-								packagesToLink.push(package);
+							if (!(ctx.isCustomized === true && ctx.type === "webApp" && (package.name.startsWith("cmf.core") || package.name.startsWith("cmf.mes"))) && packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {							
+								packagesToLink.push(package);							
 								createLinks(packagesToLink, package.path);
 							}												
 						})
