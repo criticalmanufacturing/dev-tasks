@@ -117,7 +117,8 @@ module.exports = function (gulpWrapper, ctx) {
 								pluginPath.join(packageFolder, `../${package.name}`); // When we are already in the webApp and we need flat dependencies;						
 							
 							if (ctx.isCustomized === true && (dependencyName.startsWith("cmf.core") || dependencyName.startsWith("cmf.mes")) && ctx.type !== "webApp") {								
-								package.path = webAppLink;									
+								// Only apply webApp link if the path exists
+								package.path = fs.existsSync(webAppLink) ? webAppLink : internalLink;
 							} else {
 								package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;	
 							}						
