@@ -53,6 +53,9 @@ module.exports = function (gulp, ctx) {
     // Register all tasks related with Package Management
     require('./install/package.management.js')(gulpWrapper, ctx);
 
+    // Register all tasks related with CI
+    require('./ci/index.js')(gulpWrapper, ctx);
+
     /**
       * List top level tasks
       */
