@@ -1,14 +1,14 @@
-var taskName = function(name, prefix)
-{
+var taskName = function (name, prefix) {
   return (prefix ? prefix + '>' : '') + name;
 }
 
-module.exports = function(gulp, ctx)
-{
-    var pluginRunSequence = require('run-sequence').use(gulp);
+module.exports = function (gulp, ctx) {
+  var pluginRunSequence = require('run-sequence').use(gulp);
 
-  var seq = function(depSequence, callback) {
-    var args = depSequence.map(function(dep) { return taskName(dep, ctx.prefix); });
+  var seq = function (depSequence, callback) {
+    var args = depSequence.map(function (dep) {
+      return taskName(dep, ctx.prefix);
+    });
     if (callback !== undefined) {
       args.push(callback);
     }
@@ -17,16 +17,17 @@ module.exports = function(gulp, ctx)
 
   var returnObj = Object.create(gulp);
 
-  returnObj.task = function(name, deps, fn){
-    if(typeof deps === "function")
-    {
+  returnObj.task = function (name, deps, fn) {
+    if (typeof deps === "function") {
       fn = deps;
       deps = [];
     }
 
     gulp.task(
       taskName(name, ctx.prefix),
-      deps.map(function(dep) { return taskName(dep, ctx.prefix); }),
+      deps.map(function (dep) {
+        return taskName(dep, ctx.prefix);
+      }),
       fn
     );
   };

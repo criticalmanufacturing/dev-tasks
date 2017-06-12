@@ -1,87 +1,75 @@
-var args = require("yargs").argv;
 var fs = require("fs");
 var path = require("path");
-var shell = require('shelljs');
-var exec = require('child_process').execSync;
 
-// Read parameters
-var sourceFolders = args._;
-var tag = args.tag;
-var version = args.version;
-var appendVersion = args.append;
-/** 
- * Helpers 
- */
-function help() {
-    console.log("---------------");
-    console.log("NPM Publisher helper");
-    console.log("---------------");
-    console.log("Usage:");
-    console.log("\t node publish <source-dir1> <source-dir2> ... --tag <publish-tag>");
-    console.log("Options:");
-    console.log("\t --version=<level | version> \t version increment level (see npm version). None: no version bump");
-    console.log("\t --append \t\t\t if enabled, append given version to the current package version");
-    console.log("");
-}
+var args = require("yargs").argv;
 
-/**
- * Main
- */
+var shell = require('gulp-shell');
+var gulpUtil = require("gulp-util");
 
-function main() {
-    // Check if tag and sourceFolder exists
-    if (sourceFolders == null || Array.isArray(sourceFolders) === false || sourceFolders.length === 0) {
-        help();
-        return process.exit(1);
-    }
+module.exports = function (gulpWrapper, ctx) {
+    var gulp = gulpWrapper.gulp;
+    
+    // Parse global parameters that need to be used by this plugin
+    // Read parameters
+    var tag = args.tag || "latest";
+    var version = args.version;
+    var appendVersion = args.append;
 
-    if (tag == null) {
-        help();
-        return process.exit(1);
-    }
-
-    // Iterate over all sources
-    sourceFolders.forEach(processSources);
-}
-
-function processSources(source) {
-    // Check if source exists
-    if (!fs.existsSync(source)) {
-        return;
-    }
-
-    // Read folders inside source
-    folders = fs.readdirSync(source);
-
-    // For each folder, try to publish
-    folders.map((f) => path.join(source, f)).forEach(publishPackage);
-}
-
-function publishPackage(source) {
-    // Stop if there is no package.json available
-    if (!fs.existsSync(path.join(source, "package.json"))) {
-        return;
-    }    
-
-    console.log(`Processing package ${source}`);
-
-    // Update version
-    if (version) {
+    /**
+     * Task: bump-version
+     * Upgrades current package version.
+     * If --append is defined, just appends given version to current version
+     */
+    gulp.task("__bump-version", function() {
         var targetVersion = version;
 
+        gulpUtil.log(`Bump version on ${ctx.baseDir}`);
+
         if (appendVersion) {
-            // just append this to the current version
-            var packageConfig = JSON.parse(fs.readFileSync(path.join(source, "package.json"), 'utf8'));
+            // read the current version
+            // and then append given version to the current
+            var packageConfig = JSON.parse(fs.readFileSync(path.join(ctx.baseDir, "package.json"), 'utf8'));
             targetVersion = `${packageConfig.version}-${version}`
         }
         
-        console.log(`New version: ${targetVersion}`);
-        exec(`npm version ${targetVersion}`, {cwd: source});
-    }
+        gulpUtil.log(`New version: ${targetVersion}`);
 
-    // Publish
-    console.log(`Publishing with tag: ${tag}`);
-    exec(`npm publish --tag=${tag} --git-tag-version=false`, {cwd: source});
+        return gulp
+            .src("package.json", {cwd: ctx.baseDir})
+            .pipe(shell(`npm version ${targetVersion} --no-git-tag-version`, {cwd: ctx.baseDir, verbose: true}));
+    });
+
+    /**
+     * Task: publish
+     * Publish current package to the NPM registry.
+     * It uses given TAG (default to latest).
+     */
+    gulp.task("__publish", function() {
+        gulpUtil.log(`Publishing ${ctx.baseDir} with tag '${tag}'`);
+
+        return gulp
+            .src("package.json", {cwd: ctx.baseDir})
+            .pipe(shell(`npm publish --tag=${tag} --git-tag-version=false`, {cwd: ctx.baseDir, verbose: true}));
+    });
+
+
+    // Register task for publish
+    gulp.task("ci:publish", function(done) {
+        var tasks = [];
+
+        // Check if there is package.json
+        if (fs.existsSync(path.join(ctx.baseDir, "package.json"))) {
+            if (version)
+                tasks.push("__bump-version");
+
+            tasks.push("__publish");
+        }
+
+        gulpUtil.log(`Processing ${ctx.baseDir}`);
+
+        gulpWrapper.seq(
+            tasks,
+            done
+        );
+    });
 }
-
-main();
