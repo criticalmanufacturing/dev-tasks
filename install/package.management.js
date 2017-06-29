@@ -133,10 +133,9 @@ module.exports = function (gulpWrapper, ctx) {
 				}
 			})(packagesToLink, ctx.baseDir);
 			if (packagesToLink.length > 0) {
-				// We need to delete the folder, otherwise the link won't come through
-				if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
-					pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });	
-				}			
+				
+				pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });	
+				
 				pluginExecute(packagesToLink.map((package)=>`mklink /j ${package.name} "${package.path}"`).join(" & "), { cwd: ctx.baseDir + ctx.libsFolder });	
 				console.log(`${packagesToLink.length} packages linked.`);				
 			}
