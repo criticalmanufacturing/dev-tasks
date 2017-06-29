@@ -495,7 +495,7 @@ module.exports = function (gulpWrapper, ctx) {
             ];
             if (pluginYargs.dist) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
-                tasksToExecute.unshift('__build-typescript');
+                tasksToExecute.splice(1, 0, ['__build-typescript']);
             }
             gulpWrapper.seq(tasksToExecute, callback);
         }else{
