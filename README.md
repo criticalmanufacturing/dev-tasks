@@ -1,7 +1,7 @@
 CMF MES HTML Development Tasks
 ========= 
 
-**cmf.dev.tasks** is a set of reusable gulp tasks that enable CMF MES developers to jump start their projects by providing state-of-the-art tooling.
+**@criticalmanufacturing/dev-tasks** is a set of reusable gulp tasks that enable CMF MES developers to jump start their projects by providing state-of-the-art tooling.
 
 This package is meant to be used in conjunction with [html-starter](https://github.com/criticalmanufacturing/html-starter).
 
