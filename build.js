@@ -58,7 +58,7 @@ module.exports = function (gulpWrapper, ctx) {
     ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
     var isCustomizedProject = (ctx.packagePrefix !== "cmf");
     if (isCustomizedProject === true) {
-        var customizationFolderName = path.join(__dirname, "../../").replace(/\\/g, '/').split('/');
+        var customizationFolderName = path.join(__dirname, "../../../").replace(/\\/g, '/').split('/');
         customizationFolderName.pop(); // Will pop the last /       
         customizationFolderName = customizationFolderName.pop();                
     }
