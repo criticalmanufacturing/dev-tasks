@@ -499,7 +499,7 @@ module.exports = function (gulpWrapper, ctx) {
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
-                fix: true
+                fix: false
             }))
             .pipe(pluginTslint.report({
                 summarizeFailureOutput: true,
@@ -569,7 +569,9 @@ module.exports = function (gulpWrapper, ctx) {
                 var i18nCultureFile = path.join(folder, [i18nBlock, culture, "ts"].join("."));
                 if (!fs.existsSync(i18nCultureFile)) {
                     pluginUtil.log(`Creating file ${i18nCultureFile} for culture ${culture}`);
-                    fs.writeFileSync(i18nCultureFile, "export default {\n}");
+                    fs.writeFileSync(i18nCultureFile, 
+                        `export default {}
+                    `); // We need a new line to ensure that linting rules are followed
                 }
             })
         });
