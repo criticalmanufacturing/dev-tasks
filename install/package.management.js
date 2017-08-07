@@ -132,12 +132,29 @@ module.exports = function (gulpWrapper, ctx) {
 					}
 				}
 			})(packagesToLink, ctx.baseDir);
-			if (packagesToLink.length > 0) {
-				
+			if (packagesToLink.length > 0) {				
 				pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });	
 				
+				// Let's extract the scoped packages and link them after the non scoped packages as we need to change the cwd
+				let filterScopedPackages = (package) => package.name.startsWith("@") && package.name.includes("/");				
+				let scopedPackages = packagesToLink.filter(filterScopedPackages);
+				if (scopedPackages.length > 0) {
+					scopedPackages.forEach(function(package){
+						packagesToLink.splice(packagesToLink.indexOf(package), 1); // Remove scoped packages
+					});
+				}
 				pluginExecute(packagesToLink.map((package)=>`mklink /j ${package.name} "${package.path}"`).join(" & "), { cwd: ctx.baseDir + ctx.libsFolder });	
-				console.log(`${packagesToLink.length} packages linked.`);				
+				
+				let scopedLinks = 0;
+				if (scopedPackages.length > 0) {
+					scopedPackages.forEach(function(package) {
+						// link each package moving to the right cwd
+						let [scope, packageName] = package.name.split("/");
+						pluginExecute(`mklink /j ${packageName} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder + scope });	
+						scopedLinks+=1;
+					});
+				}
+				console.log(`${packagesToLink.length + scopedLinks} packages linked.`);				
 			}
 			callback();
 		} catch(ex) {
