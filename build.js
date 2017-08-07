@@ -22,6 +22,7 @@ var pluginIf = require('gulp-if');
 var pluginWalker = require('async-walker');
 var pluginUtil = require('gulp-util');
 var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
+var pluginTslint = require("gulp-tslint");
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -64,6 +65,7 @@ module.exports = function (gulpWrapper, ctx) {
     }
 
     var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/typescript/bin/tsc');
+    var tslintPath = path.join(ctx.__repositoryRoot, '/tslint/bin/tslint');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
     var excludei18nAndMetadata = function(isCore) {        
@@ -481,6 +483,35 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     /**
+     * Package linting.
+     */
+    gulp.task("__lint", (callback) => {          
+        // First check if there is a tslint.json file, otherwise, skip the whole linting.        
+        if (fs.existsSync(`${ctx.__repositoryRoot}/../tslint.json`)) {            
+            let packageExclusionList = [];
+            if (ctx.linterExclusions instanceof Array && ctx.linterExclusions.length > 0) {
+                packageExclusionList = ctx.linterExclusions;
+            }
+            //return gulp.src('').pipe(pluginShell(`node ${tslintPath} --config  ${ctx.__repositoryRoot}/../tslint.json "src/**/*.ts" --exclude "src/**/*.d.ts" ${exclusionListBlock} `, { cwd: ctx.baseDir }));       
+            return gulp.src([                
+                `${ctx.baseDir}src/**/*.ts`, 
+                `!${ctx.baseDir}src/**/*.d.ts`, 
+            ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
+            .pipe(pluginTslint({
+                formatter: "stylish",
+                fix: true
+            }))
+            .pipe(pluginTslint.report({
+                summarizeFailureOutput: true,
+                allowWarnings: true
+            }));
+        } else {
+            console.log("No tslint.json file found. Skipping task.")
+            callback();
+        }        
+    });
+
+    /**
     * Build Project
     */
     gulp.task('build', function (callback) {
@@ -503,6 +534,7 @@ module.exports = function (gulpWrapper, ctx) {
             [
                 '__clean-dev',
                 '__build-typescript',
+                '__lint',
                 '__build-less'
             ],
             callback);
