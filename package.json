@@ -1,6 +1,6 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-  "version": "5.1.4",
+  "version": "5.1.5-1",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
@@ -41,7 +41,13 @@
     "through": "~2.3.8",
     "typescript": "2.4.1",
     "uuid": "^2.0.2",
-    "yargs": "~3.10.0"
+    "yargs": "~3.10.0",
+    "tslint": "^5.5.0",
+    "gulp-tslint": "^8.1.1",
+    "codelyzer": "^3.1.2",
+    "@angular/compiler": "4.3.1",
+    "@angular/core": "4.3.1",
+    "rxjs": "5.4.2"
   },
   "devDependencies": {},
   "scripts": {},
