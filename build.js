@@ -521,12 +521,15 @@ module.exports = function (gulpWrapper, ctx) {
                 '__clean-prod',                                
                 '__build-and-bundle',
                 '__build-and-bundle-i18n',
-                '__build-and-bundle-metadata',
+                '__build-and-bundle-metadata',		
                 '__build-less'                            
             ];
             if (pluginYargs.dist) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
                 tasksToExecute.splice(1, 0, ['__build-typescript']);
+            }
+	    if (ctx.type !== "dependency") {
+            	tasksToExecute.push('__lint');
             }
             gulpWrapper.seq(tasksToExecute, callback);
         }else{
