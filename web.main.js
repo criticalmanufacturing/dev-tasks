@@ -9,6 +9,7 @@ var pluginShell = require('gulp-shell');
 var pluginCallback = require("gulp-callback");
 var fs = require("fs");
 var fsExtra = require("fs-extra");
+var nodePath = require("path");
 var uuid = require('uuid');
 var utils = require('./utils.js');
 
@@ -16,7 +17,7 @@ module.exports = function (gulpWrapper, ctx) {
     
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
-    var typescriptCompilerPath = ctx.__repositoryRoot + '/typescript/bin/tsc';
+    var typescriptCompilerPath = nodePath.join(ctx.__repositoryRoot, 'node_modules/typescript/bin/tsc');
     var getDirectories = function (path, startsWith) {
         try {
             var directory = fs.readdirSync(path);
