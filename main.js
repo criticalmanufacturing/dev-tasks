@@ -1,6 +1,6 @@
 var utils = require('./utils.js');
 var __CONSTANTS = require('./context.json');
-var cmfDevTasksConfig = require('../../../.dev-tasks.json');
+var pluginUtil = require('gulp-util');
 
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;
@@ -15,13 +15,15 @@ module.exports = function (gulp, ctx) {
 
 	// Repository root is a context variable almost always unnecessary.
     // For that reason is here defined as a getter instead of directly calculating its
-    Object.defineProperty(ctx, "__repositoryRoot", {
-        configurable: true,
-        enumerable: true,
-        get: function(){
-            return path.normalize(path.join(__dirname, "../.."));
-        }
-    });
+    if (!("__repositoryRoot" in ctx)) {
+        Object.defineProperty(ctx, "__repositoryRoot", {
+            configurable: true,
+            enumerable: true,
+            get: function(){
+                return path.normalize(path.join(__dirname, "../../.."));
+            }
+        });
+    }
 
     // Project name is a context variable costly to calculate but not always necessary.
     // For that reason is here defined as a getter instead of always getting the value
@@ -34,8 +36,17 @@ module.exports = function (gulp, ctx) {
         }
     });
 
-    // Please do not comment remove the next line as it will be used by the scaffolding process to set the repository prefix
-    ctx.packagePrefix = cmfDevTasksConfig.packagePrefix || "cmf";
+    if (!ctx.packagePrefix) {
+        var cmfDevTasksConfig;
+        try {
+            cmfDevTasksConfig = require('../../../.dev-tasks.json');
+            ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
+        } catch (error) {
+            pluginUtil.log(pluginUtil.colors.yellow("Unable to find '.dev-tasks'. Continuing..."));
+            ctx.packagePrefix = "cmf";
+        }
+    }
+
     ctx.isCustomized = ctx.packagePrefix !== "cmf";
     if (gulp == null) {return;}
 	

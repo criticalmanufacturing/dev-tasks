@@ -64,8 +64,8 @@ module.exports = function (gulpWrapper, ctx) {
         customizationFolderName = customizationFolderName.pop();                
     }
 
-    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/typescript/bin/tsc');
-    var tslintPath = path.join(ctx.__repositoryRoot, '/tslint/bin/tslint');
+    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
+    var tslintPath = path.join(ctx.__repositoryRoot, '/node_modules/tslint/bin/tslint');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
     var excludei18nAndMetadata = function(isCore) {        
@@ -257,9 +257,7 @@ module.exports = function (gulpWrapper, ctx) {
                     .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                    
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
                     .pipe(pluginReplace({patterns: commonRegexPatterns})) 
-                    .on('error', function() {
-                        console.log(arguments);
-                    })
+                    .on('error', pluginUtil.log)
                     .pipe(pluginMinify({
                         ext: {
                             src: '-debug.js',
@@ -382,7 +380,7 @@ module.exports = function (gulpWrapper, ctx) {
         }
         catch (e) {            
             noResult = true;
-            console.log("Module has no i18n resources");
+            pluginUtil.log(pluginUtil.colors.yellow("Module has no i18n resources"));
         }
         if (noResult === true) {
             cb();
@@ -433,7 +431,7 @@ module.exports = function (gulpWrapper, ctx) {
         });
     });
 
-    gulp.task("__build-typescript", function (callback) {           
+    gulp.task("__build-typescript", function (callback) {
         return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
     });
 
@@ -485,28 +483,27 @@ module.exports = function (gulpWrapper, ctx) {
     /**
      * Package linting.
      */
-    gulp.task("__lint", (callback) => {          
+    gulp.task("__lint", (callback) => {
         // First check if there is a tslint.json file, otherwise, skip the whole linting.        
-        if (fs.existsSync(`${ctx.__repositoryRoot}/../tslint.json`)) {            
+        if (fs.existsSync(`${ctx.__repositoryRoot}/tslint.json`)) {            
             let packageExclusionList = [];
             if (ctx.linterExclusions instanceof Array && ctx.linterExclusions.length > 0) {
                 packageExclusionList = ctx.linterExclusions;
             }
-            //return gulp.src('').pipe(pluginShell(`node ${tslintPath} --config  ${ctx.__repositoryRoot}/../tslint.json "src/**/*.ts" --exclude "src/**/*.d.ts" ${exclusionListBlock} `, { cwd: ctx.baseDir }));       
             return gulp.src([                
                 `${ctx.baseDir}src/**/*.ts`, 
                 `!${ctx.baseDir}src/**/*.d.ts`, 
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
-                fix: false
+                fix: pluginYargs.fix ? true : false
             }))
             .pipe(pluginTslint.report({
                 summarizeFailureOutput: true,
                 allowWarnings: true
             }));
         } else {
-            console.log("No tslint.json file found. Skipping task.")
+            pluginUtil.log(pluginUtil.colors.yellow("No tslint.json file found. Skipping task."));
             callback();
         }        
     });
@@ -528,7 +525,7 @@ module.exports = function (gulpWrapper, ctx) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
                 tasksToExecute.splice(1, 0, ['__build-typescript']);
             }
-	    if (ctx.type !== "dependency") {
+	        if (ctx.type !== "dependency") {
             	tasksToExecute.push('__lint');
             }
             gulpWrapper.seq(tasksToExecute, callback);
@@ -547,7 +544,7 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('watch', function (cb) {
         var rs = require("run-sequence").use(gulp);
         rs('build', function () {
-            gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", ['__build-typescript']);
+            gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", ['__lint', '__build-typescript']);
             gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.less", ['__build-less']);
             //cb();
         });
@@ -562,7 +559,7 @@ module.exports = function (gulpWrapper, ctx) {
 
         var nonMatchingFiles = files.filter(file => defaults.indexOf(file.split(".")[0]) < 0);
         if (nonMatchingFiles && nonMatchingFiles.length > 0) {
-            pluginUtil.log(`Invalid files found at ${folder}: ${nonMatchingFiles}`);
+            pluginUtil.log(new Error(`Invalid files found at ${folder}: ${nonMatchingFiles}`));
         }
 
 
