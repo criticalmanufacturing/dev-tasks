@@ -493,6 +493,7 @@ module.exports = function (gulpWrapper, ctx) {
             return gulp.src([                
                 `${ctx.baseDir}src/**/*.ts`, 
                 `!${ctx.baseDir}src/**/*.d.ts`, 
+                `!${ctx.baseDir}src/**/i18n/*.ts`,
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
