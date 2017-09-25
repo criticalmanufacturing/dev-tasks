@@ -431,7 +431,7 @@ module.exports = function (gulpWrapper, ctx) {
         });
     });
 
-    gulp.task("__build-typescript", function (callback) {
+    gulp.task("__build-typescript", function (callback) {           
         return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
     });
 
@@ -480,7 +480,7 @@ module.exports = function (gulpWrapper, ctx) {
         }
     });
 
-    /**
+        /**
      * Package linting.
      */
     gulp.task("__lint", (callback) => {
@@ -512,8 +512,15 @@ module.exports = function (gulpWrapper, ctx) {
     /**
     * Build Project
     */
-    gulp.task('build', function (callback) {
+    gulp.task('build', function(callback) {
+        gulpWrapper.seq(["__internal-build"], callback);
+    });
 
+    /**
+     * Internal Build task
+     */
+    gulp.task('__internal-build', function (callback) {
+        
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
                 '__clean-prod',                                
@@ -526,8 +533,8 @@ module.exports = function (gulpWrapper, ctx) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
                 tasksToExecute.splice(1, 0, ['__build-typescript']);
             }
-	        if (ctx.type !== "dependency") {
-            	tasksToExecute.push('__lint');
+        if (ctx.type !== "dependency") {
+                tasksToExecute.push('__lint');
             }
             gulpWrapper.seq(tasksToExecute, callback);
         }else{
@@ -542,7 +549,17 @@ module.exports = function (gulpWrapper, ctx) {
         }
     });
 
+    /**
+     * Watch task
+     */
     gulp.task('watch', function (cb) {
+        gulpWrapper.seq(["__internal-watch"], cb);
+    });
+
+    /**
+     * Internal Watch
+     */
+    gulp.task('__internal-watch', function (cb) {
         var rs = require("run-sequence").use(gulp);
         rs('build', function () {
             gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", ['__lint', '__build-typescript']);
