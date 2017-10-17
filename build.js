@@ -298,7 +298,7 @@ module.exports = function (gulpWrapper, ctx) {
                     return language;                      
                 }
 
-                return new Promise(function (resolve, reject) {   
+                new Promise(function (resolve, reject) {   
                     i18n.supportedCultures.forEach(function (language) {     
                         language = setFinalLanguage(language);                        
                         suffix = (language !== i18n.startupCultureSuffix) ? language.split("-").join("\-") : "";
@@ -316,7 +316,7 @@ module.exports = function (gulpWrapper, ctx) {
                                 language = setFinalLanguage(language);                        
                                 tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
                                     "typescript": require("typescript"),
-                                    "out": "main." + finalLanguage + ".js"
+                                    "out": "main." + finalLanguage + ".bundle.js"
                                 });
 
                                 // TODO: THERE IS A BUG IN THIS PROCEDURE BECAUSE WHEN WE GENERATE A LANGUAGE BUNDLE, OTHER THAN THE DEFAULT (pt-PT FOR INSTANCE), WE MAY BE INCLUDING DEFAULT LANGUAGE MODULES, BECAUSE WE MAKE AN IMPORT LIKE "import .. from '[module].default'"
@@ -327,9 +327,9 @@ module.exports = function (gulpWrapper, ctx) {
                                     .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
                                     .pipe(pluginReplace({
                                         patterns: [                                                                        
-                                            // We need to remove the index entry, which is the last one in the file                                                                                
+                                            // We need to remove the index entry, which is the last one in the file
                                             { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: function () { return ''; } },
-                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
+                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
                                         ]
                                     }))
                                     .pipe(pluginIf(isCustomizedProject === true,  pluginReplace({
@@ -344,9 +344,20 @@ module.exports = function (gulpWrapper, ctx) {
                                         ]
                                     })))
                                     .pipe(pluginIf(language !== i18n.startupCultureSuffix,  pluginReplace({
+                                        // This a sequence of 3 steps (to fix the problem described above)
+                                        // 1. Replace all register by .default file for ORIGINAL_LANGUAGE
+                                        // 2. Replace all .default by the en-US (this includes the dependencies!)
+                                        // 3. Replace back the ORIGINAL_LANGUAGE by .default
+                                        patterns: [
+                                            { match: new RegExp("System\\.register\\(\"([^\"]*)(i18n\/\\w+)(\.default)\"", 'gi'), replacement: "System.register(\"$1$2.ORIGINAL_LANGUAGE\"" }
+                                        ]
+                                    })))
+                                    .pipe(pluginIf(language !== i18n.startupCultureSuffix,  pluginReplace({
+                                        // Important: Read the previous pipe comment first
                                         // When producing the i18n resource file for any culture other than default, there is a problem: if the specific culture imports a default value, it will be in the bundle as ".default". This is a problem. So let's replace ".default" for the true default culture.
                                         patterns: [
-                                            { match: new RegExp("(i18n\/\\w+)(\.default)", 'gi'), replacement: "$1." +  i18n.startupCulture },
+                                            { match: new RegExp("(i18n\/\\w+)(\.default)", 'gi'), replacement: "$1." +  finalLanguage },
+                                            { match: new RegExp("(i18n\/\\w+)\.ORIGINAL_LANGUAGE", 'gi'), replacement: "$1." +  i18n.startupCulture }
                                         ]
                                     })))
                                     .pipe(pluginMinify({
@@ -356,7 +367,7 @@ module.exports = function (gulpWrapper, ctx) {
                                         }
                                     }))
                                     .on('error', function(err) {
-                                        cb(err);
+                                        reject(err);
                                     })
                                     .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "i18n"))
                                     .on('end', function(){
@@ -372,9 +383,11 @@ module.exports = function (gulpWrapper, ctx) {
                             resolve();
                         })
                         .catch(function(err) {
-                            cb(err);
-                            reject(err);
+                            resolve(err);
                         });
+                })
+                .then(function(obj) {
+                    cb(obj);  
                 });
             }
         }
