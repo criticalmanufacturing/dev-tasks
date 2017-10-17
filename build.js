@@ -316,7 +316,7 @@ module.exports = function (gulpWrapper, ctx) {
                                 language = setFinalLanguage(language);                        
                                 tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
                                     "typescript": require("typescript"),
-                                    "out": "main." + finalLanguage + ".js"
+                                    "out": "main." + finalLanguage + ".bundle.js"
                                 });
 
                                 // TODO: THERE IS A BUG IN THIS PROCEDURE BECAUSE WHEN WE GENERATE A LANGUAGE BUNDLE, OTHER THAN THE DEFAULT (pt-PT FOR INSTANCE), WE MAY BE INCLUDING DEFAULT LANGUAGE MODULES, BECAUSE WE MAKE AN IMPORT LIKE "import .. from '[module].default'"
