@@ -494,6 +494,7 @@ module.exports = function (gulpWrapper, ctx) {
                 `${ctx.baseDir}src/**/*.ts`, 
                 `!${ctx.baseDir}src/**/*.d.ts`, 
                 `!${ctx.baseDir}src/**/i18n/*.ts`,
+                `!${ctx.baseDir}src/**/style/fonts/**/metadata.ts`,
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
