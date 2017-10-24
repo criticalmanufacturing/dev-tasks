@@ -23,16 +23,17 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task("__bump-version", function() {
         var targetVersion = version;
 
-        gulpUtil.log(`Bump version on ${ctx.baseDir}`);
+        var packageConfig = JSON.parse(fs.readFileSync(path.join(ctx.baseDir, "package.json"), 'utf8'));
 
         if (appendVersion) {
             // read the current version
             // and then append given version to the current
-            var packageConfig = JSON.parse(fs.readFileSync(path.join(ctx.baseDir, "package.json"), 'utf8'));
             targetVersion = `${packageConfig.version}-${version}`
+        } else {
+            targetVersion = version
         }
         
-        gulpUtil.log(`New version: ${targetVersion}`);
+        gulpUtil.log(gulpUtil.colors.blue(packageConfig.version), gulpUtil.colors.grey("->"), gulpUtil.colors.green(targetVersion));
 
         return gulp
             .src("package.json", {cwd: ctx.baseDir})
