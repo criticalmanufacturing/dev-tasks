@@ -60,9 +60,14 @@ module.exports = function (gulpWrapper, ctx) {
 
         // Check if there is package.json
         if (fs.existsSync(path.join(ctx.baseDir, "package.json"))) {
-            if (version)
+            if (version) {
                 tasks.push("__bump-version");
+            }
+            
+            // Also make sure the package-lock is updates
+            tasks.push("ci:package-lock");
 
+            // Finally, publish!
             tasks.push("__publish");
         }
 

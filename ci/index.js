@@ -9,6 +9,8 @@ module.exports = function (gulpWrapper, ctx) {
 
     // Require all files with given gulp and context
     for(var file of files) {
-        require(path.join(__dirname, file))(gulpWrapper, ctx);
+        if (file.endsWith(".js")) {
+            require(path.join(__dirname, file))(gulpWrapper, ctx);
+        }
     }
 };
