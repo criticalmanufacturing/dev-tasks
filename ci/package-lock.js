@@ -10,6 +10,11 @@ PACKAGE_LOCK_FILENAME = "npm-shrinkwrap.json";
 module.exports = function (gulpWrapper, ctx) {
     var gulp = gulpWrapper.gulp;
 
+    /**
+     * Process a package dependencies folder (node_modules)
+     * @param {string} packagesPath Package dependencies path
+     * @param {string} packageScope Package scope name (null if there's no scope)
+     */
     function processPackages(packagesPath, packageScope) {
         // Iterate over all folder and process each one
         let folders = fs.readdirSync(packagesPath);
@@ -45,7 +50,8 @@ module.exports = function (gulpWrapper, ctx) {
 
     /**
      * Process a package.
-     * If there is no package.json, try to read the folder as a scoped package
+     * If there is no package.json, try to read the folder as a scoped package.
+     * If this is a linked package, do not process its dependencies.
      * @param {string} packagePath Package path
      * @param {boolean} isLinkedPackage Indicates wether this package is linked or not
      */

@@ -29,7 +29,7 @@ module.exports = function (gulpWrapper, ctx) {
             ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + ctx.metadataFileName,
 			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
-			ctx.baseDir + "package-lock.json",
+			ctx.baseDir + "package-lock.json", // NPM v5 generated file
             ctx.baseDir + "obj",
             ctx.baseDir + "bin"], { force: true }, callback);
     });
