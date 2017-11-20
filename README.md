@@ -5,89 +5,113 @@ CMF MES HTML Development Tasks
 
 This package is meant to be used in conjunction with [html-starter](https://github.com/criticalmanufacturing/html-starter).
 
-## Tasks available
+# Tasks available
 
-### Repository root
+## Repository root
 
-#### Install
+### Install
 
-```
-gulp install
+```sh
+$ gulp install [options]
 ```
 
 Runs ```gulp install``` for each app, dependency or package within the repository.
 
-#### Build
+#### Additional flags
+The same as [package install additional flags](#additional-flags).
 
-```
-gulp build
+### Build
+
+```sh
+$ gulp build [options]
 ```
 
 Runs ```gulp build``` for each app, dependency or package within the repository.
 
-##### Additional flags
+#### Additional flags
 The same as [package build additional flags](#additional-flags).
 
-#### Start
+### Start
 
-```
-gulp start
+```sh
+$ gulp start [options]
 ```
 
 Runs ```gulp start``` on the main app, configured within the ```gulpfile.js``` present at the repository root.
 
-### Package
+## Package
 
-#### Install
+### Install
 
+```sh
+$ gulp install [options]
 ```
-gulp install
+
+Install all package dependencies declared in ```package.json``` into the ```node_modules``` folder. 
+
+#### Additional Flags
+
+##### --link
+
+Make symbolic links to another packages. Links are read from ```package.json``` file, under the property ```cmfLinkDependencies```.
+
+This is active by default.
+
+When importing, it will also link all links dependencies. Links with a lower deep-level will have more priority.
+
+```json
+// package.json file
+{
+    "name": "my-module",
+    "cmfLinkDependencies": {
+        "my-module-A": "file:../packages/my-module-A/"
+    }
+}
 ```
 
-Install all package dependencies declared in ```__bower.json``` into the ```node_modules``` folder. 
+Use ```--no-link``` to disable this option.
 
-#### Build
+##### --link-external
+Make symbolic links to another packages outside the project dir.
 
-```
-gulp build
+This is active by default.
+
+Use ```--no-link-external``` to disable this option.
+
+### Build
+
+```sh
+$ gulp build [options]
 ```
 
 Builds the package in developer mode (every typescript file is transpiled into a respective javascript file)
 
-##### Additional Flags
+#### Additional Flags
 
-```
---production
-```
-
+##### --production
 Builds the package in production mode (creates a bundle all i18n files, another for the metadata, and another with the remaining package code).
 
-```
---dist
-```
+##### --dist
 Should be used in conjunction with ```--production```. On top of the packages, it also generates typescript definition files and individual javascript transpiled files.
 
 This flag should be used if the package is meant to be redistributed and extended by others.
 
-### App
+## App
 
-#### Start
+### Start
 
-```
-gulp start
+```sh
+$ gulp start [options]
 ```
 
 Starts the application. By default starts on developer mode.
 
-##### Additional Flags
+#### Additional Flags
 
-```
---production
-```
-
+##### --production
 Starts the application in production mode.
 
-## Additional Information
+# Additional Information
 
 This package was developed during the [UX-FAB: Universal Experience for Advanced Fabs](http://www.criticalmanufacturing.com/en/r-d/ux-fab) project.
 
