@@ -65,7 +65,7 @@ module.exports = function (gulpWrapper, ctx) {
             }
             
             // Also make sure the package-lock is updates
-            tasks.push("ci:package-lock");
+            tasks.push("generate-package-lock");
 
             // Finally, publish!
             tasks.push("__publish");
@@ -78,4 +78,7 @@ module.exports = function (gulpWrapper, ctx) {
             done
         );
     });
+
+    // Provide "ci:publish" task as "publish" task
+    gulp.task("publish", ["ci:publish"]);
 }
