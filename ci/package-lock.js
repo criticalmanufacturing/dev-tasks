@@ -67,7 +67,14 @@ module.exports = function (gulpWrapper, ctx) {
         }
 
         // Read the config
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        let config;
+        try {
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch(err) {
+            console.error(`Failed to read package.json file ${configPath}`, err);
+            throw err;
+        }
+        
             
         const packageInfo = {
             name: config.name,

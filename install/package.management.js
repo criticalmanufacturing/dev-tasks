@@ -162,6 +162,14 @@ module.exports = function (gulpWrapper, ctx) {
 			if (packagesToLink.length > 0) {				
 				pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });
 				
+				// In the future, we can use the npm link to link all packages
+				// This is the best option, but there's still some issues
+				// packagesToLink.filter(p => !p.name.startsWith("@")).forEach(package => {
+				// 	pluginExecuteSync(`npm install ${package.path}`, { cwd: ctx.baseDir });
+				// });
+
+				// gulpUtil.log(`${packagesToLink.length} packages linked.`);
+
 				// Let's extract the scoped packages and link them after the non scoped packages as we need to change the cwd
 				let filterScopedPackages = (package) => package.name.startsWith("@") && package.name.includes("/");				
 				let scopedPackages = packagesToLink.filter(filterScopedPackages);
