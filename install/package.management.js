@@ -129,7 +129,16 @@ module.exports = function (gulpWrapper, ctx) {
 								// Only apply webApp link if the path exists
 								package.path = fs.existsSync(webAppLink) ? webAppLink : internalLink;
 							} else {
-								package.path = fs.existsSync(internalLink) ? internalLink : webAppLink;	
+								if (fs.existsSync(internalLink)) {
+									package.path = internalLink;
+								} else if (fs.existsSync(webAppLink)) {
+									package.path = webAppLink;
+								}	
+							}
+
+							// If there is no path, it means it was not possible to link, so it will be an invalid link
+							if (package.path == null) {
+								return;
 							}
 
 							// Check if this is an external link (out of this repository)
