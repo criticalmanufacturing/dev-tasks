@@ -221,6 +221,7 @@ module.exports = function (gulpWrapper, ctx) {
 		// Clean tasks
 		if (pluginYargs.clean) {
 			taskArray.push('__cleanLibs');
+<<<<<<< HEAD
 		}
 
 		// Add tasks
@@ -231,6 +232,18 @@ module.exports = function (gulpWrapper, ctx) {
 			taskArray.push('__linkDependencies');
 		}
 
+=======
+		}
+
+		// Add tasks
+		taskArray.push('__npmInstall', '__copyLocalTypings');
+
+		// Link packages
+		if (pluginYargs.link == null || pluginYargs.link === true) {
+			taskArray.push('__linkDependencies');
+		}
+
+>>>>>>> master
 		// The best approach would be linking first and then make an "npm -i" but there is a bug on npm that steals the dependencies packages, so for instance, it would steal lbo's moment when installing cmf.core. We do it the other way arround to prevent this bug (https://github.com/npm/npm/issues/10343)
 		seq(taskArray, callback);		
 	});
