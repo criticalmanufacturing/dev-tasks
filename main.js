@@ -1,6 +1,7 @@
 var utils = require('./utils.js');
 var __CONSTANTS = require('./context.json');
 var pluginUtil = require('gulp-util');
+var pluginArgs = require('yargs').argv;
 
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;
@@ -12,6 +13,11 @@ var pluginExecSync = require('child_process').execSync;
 module.exports = function (gulp, ctx) {
     var gulpWrapper = require('./gulp.wrappers.js')(gulp, ctx);
     ctx["__CONSTANTS"] = __CONSTANTS;
+
+    // Read some properties
+    if(!("__verbose" in ctx)) {
+        ctx["__verbose"] = pluginArgs.d || pluginArgs.debug || pluginArgs.verbose;
+    }
 
 	// Repository root is a context variable almost always unnecessary.
     // For that reason is here defined as a getter instead of directly calculating its
