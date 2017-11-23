@@ -35,12 +35,16 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
 	/**
-	 * Cleans the libs folder allowing a cleaning install.
+	 * Cleans the libs folder allowing a clean install.
+	 * This also needs to remove the previous package-lock for a clean install.
 	 * There is an exception here, which is the webApp for customized projects. We can't delete the libs folder as we would be removing the HTML5 release.
 	 */
 	gulp.task('__cleanLibs',  function (callback) {	
 		if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
-			pluginDel.sync([ctx.baseDir + ctx.libsFolder], { force: true });	
+			pluginDel.sync([
+				ctx.baseDir + ctx.libsFolder,
+				ctx.baseDir + "package-lock.json", // NPM v5 generated file
+			], { force: true });	
 		}
 		callback();
 	}); 
@@ -54,13 +58,31 @@ module.exports = function (gulpWrapper, ctx) {
  				if (error instanceof Error) {
  					console.error(stderr);	
  				} 
- 				callback();								      
+ 				callback();
  			});			
   		} catch(ex) {
  			console.error(ex);			
   			callback();
   		}
-	}); 
+	});
+
+    /*
+     * Dedupe the libs installed by NPM
+     */ 
+    gulp.task('__dedupeLibs',  function(callback) {	
+		try {								
+ 			pluginExecute('npm dedupe', { cwd: ctx.baseDir }, function(error, stdout, stderr) {
+ 				if (error instanceof Error) {
+ 					console.error(stderr);
+ 				}
+ 				callback();
+ 			});			
+  		} catch(ex) {
+ 			console.error(ex);			
+  			callback();
+  		}
+	});
+
 
 	/*
 	* If there is a "local-typings" folder, then the typings inside are not available in their own npm packages or in the npm @types repository.
@@ -198,9 +220,12 @@ module.exports = function (gulpWrapper, ctx) {
 					});
 				}
 
-				packagesToLink
-					.concat(scopedPackages)
-					.forEach(package => gulpUtil.log("New symLink:", gulpUtil.colors.grey(ctx.baseDir + ctx.libsFolder + package.name), "->", gulpUtil.colors.green(package.path)));
+				// Log all links created
+				if (ctx.__verbose) {
+					packagesToLink
+						.concat(scopedPackages)
+						.forEach(package => gulpUtil.log("New symLink:", gulpUtil.colors.grey(ctx.baseDir + ctx.libsFolder + package.name), "->", gulpUtil.colors.green(package.path)));
+				}
 				
 				gulpUtil.log(`${packagesToLink.length + scopedPackages.length} packages linked.`);
 			}
@@ -224,7 +249,7 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 
 		// Add tasks
-		taskArray.push('__npmInstall', '__copyLocalTypings');
+		taskArray.push('__npmInstall', '__dedupeLibs', '__copyLocalTypings');
 
 		// Link packages
 		if (pluginYargs.link == null || pluginYargs.link === true) {
