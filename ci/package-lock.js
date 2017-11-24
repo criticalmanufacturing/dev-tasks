@@ -84,7 +84,7 @@ module.exports = function (gulpWrapper, ctx) {
         // If there is a _from that is pointing to git or http, use it as version
         if ("_from" in config) {
             if (config["_from"].indexOf("://") >= 0) {
-                packageInfo.version = config["_from"];
+                packageInfo.version = config["_resolved"];
             }
         }
 
