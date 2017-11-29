@@ -148,10 +148,12 @@ module.exports = function (gulpWrapper, ctx) {
 							 * - if it exists, most certaintly, it's a link to a customized package
 							 * This approach seems to be the most generic as it does not catalog any exceptions that would be altered later on.
 							 */ 							 
-							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop()),						
-								webAppLink = (ctx.isCustomized === true && fs.existsSync(pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`))) ? 
-								pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`) : 
-								pluginPath.join(packageFolder, `../${package.name}`); // When we are already in the webApp and we need flat dependencies;						
+							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop());
+							let webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);
+							if (!ctx.isCustomized || !fs.existsSync(webAppLink)) {
+								// When we are already in the webApp and we need flat dependencies
+								webAppLink = pluginPath.join(packageFolder, `../${package.name}`);
+							}
 							
 							if (ctx.isCustomized === true && (dependencyName.startsWith("cmf.core") || dependencyName.startsWith("cmf.mes")) && ctx.type !== "webApp") {								
 								// Only apply webApp link if the path exists
@@ -166,6 +168,17 @@ module.exports = function (gulpWrapper, ctx) {
 
 							// If there is no path, it means it was not possible to link, so it will be an invalid link
 							if (package.path == null) {
+								return;
+							}
+
+							// Normalize paths
+							package.path = pluginPath.normalize(package.path);
+							
+							// Check if we're trying to link to itself and stop
+							if (package.path.startsWith(pluginPath.normalize(ctx.baseDir))) {
+								if (ctx.__verbose) {
+									gulpUtil.log("Skipping symLink", gulpUtil.colors.grey(package.path), "from", gulpUtil.colors.grey(package.name));
+								}
 								return;
 							}
 
