@@ -52,9 +52,15 @@ module.exports = function (gulpWrapper, ctx) {
     /*
     * Installs all npm packages (public and private)
     */ 
-    gulp.task('__npmInstall',  function(callback) {	
+    gulp.task('__npmInstall',  function(callback) {
+		var command = "npm install";
+
+		if (!ctx.__verbose) {
+			command = command + " --silent";
+		}
+
 		try {								
- 			pluginExecute('npm install --silent', { cwd: ctx.baseDir }, function(error, stdout, stderr) {
+ 			pluginExecute(command, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
  				if (error instanceof Error) {
  					console.error(stderr);	
  				} 
@@ -244,7 +250,7 @@ module.exports = function (gulpWrapper, ctx) {
 		var taskArray = [];
 
 		// Clean tasks
-		if (pluginYargs.clean) {
+		if (pluginYargs.clean !== false) {
 			taskArray.push('__cleanLibs');
 		}
 
