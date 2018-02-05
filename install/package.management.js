@@ -268,7 +268,11 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 
 		// Add tasks
-		taskArray.push('__npmInstall', '__dedupeLibs', '__copyLocalTypings');
+		taskArray.push('__npmInstall');
+		if (ctx.type === "webApp") {
+			taskArray.push('__dedupeLibs');
+		}
+		taskArray.push('__copyLocalTypings');
 
 		// Link packages
 		if (pluginYargs.link == null || pluginYargs.link === true) {
