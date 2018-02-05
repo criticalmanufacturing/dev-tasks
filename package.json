@@ -1,6 +1,6 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-  "version": "5.1.9",
+  "version": "6.0.0-0",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
@@ -47,7 +47,9 @@
     "tslint": "~5.8.0",
     "typescript": "2.4.1",
     "uuid": "^2.0.2",
-    "yargs": "~3.10.0"
+    "yargs": "~3.10.0",
+    "clean-css" : "~4.1.9",
+    "html-minifier": "~3.5.8"
   },
   "devDependencies": {},
   "scripts": {},
