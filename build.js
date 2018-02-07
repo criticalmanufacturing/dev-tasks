@@ -59,19 +59,17 @@ module.exports = function (gulpWrapper, ctx) {
     var gulp = gulpWrapper.gulp;
     ctx.baseDir = ctx.baseDir.replace(/\\/g, '/');
     ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
-    var isCustomizedProject = (ctx.packagePrefix !== "cmf");
-    if (isCustomizedProject === true) {
-        var customizationFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/');
-        customizationFolderName = customizationFolderName.pop();                
-    }
+
+    var isCustomizedProject = ctx.isCustomized;
+    var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
     var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
     var tslintPath = path.join(ctx.__repositoryRoot, '/node_modules/tslint/bin/tslint');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
-    var excludei18nAndMetadata = function(isCore) {        
+    var excludei18nAndMetadata = function() {        
         // if it's a customized project, we move 3 levels to find us the root of the repository               
-        var filter = ((isCore === true) ? ctx.__CONSTANTS.CoreFolderName : (!isCustomizedProject) ? ctx.__CONSTANTS.MesFolderName : customizationFolderName) + "/src/packages/" + ctx.packageName;
+        var filter = rootFolderName + "/src/packages/" + ctx.packageName;
         var i18nRegexMatch = "System\\.register\\(\"" + filter + "/src.*/i18n/.*?\", \\[[\\s\\S]*}\\);",
             i18nCustomizedRegexMatch = "System\\.register\\(\"(" + ctx.packageName + "\/src.*\/|src.*\/|)i18n/.*?\", \\[[\\s\\S]*}\\);",
             metadataRegexMatch = "System\\.register\\(\"" + filter + "/src/" + ctx.packageName + ".metadata[\\s\\S]*?System\\.register",
@@ -108,7 +106,7 @@ module.exports = function (gulpWrapper, ctx) {
         return patterns;
     }
 
-    var bundleHTMLAndCSS = function (isCore) {
+    var bundleHTMLAndCSS = function () {
 
         // function to get the CSS or HTML files
         getFileContent = function (entry, filePath) {
@@ -196,7 +194,7 @@ module.exports = function (gulpWrapper, ctx) {
             return systemRegisterArrayJoined !== "" ? "System.register(" + systemRegisterArrayJoined : "";
         };
 
-        var filter = ((isCore === true) ? ctx.__CONSTANTS.CoreFolderName : (!isCustomizedProject) ? ctx.__CONSTANTS.MesFolderName : customizationFolderName) + "/src/packages/" + ctx.packageName;
+        var filter = rootFolderName + "/src/packages/" + ctx.packageName;
         var patterns = {
             patterns: [
                 {
@@ -344,7 +342,7 @@ module.exports = function (gulpWrapper, ctx) {
         var promiseToResolve = Promise.resolve(null);
         
         if (isCustomizedProject === true) {
-            commonRegexPatterns.push({ match: new RegExp(customizationFolderName + "\/src\/packages\/", "gi"), replacement: '' });
+            commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
         }
 
         promiseToResolve.then(function(tsConfigName) {
@@ -353,9 +351,9 @@ module.exports = function (gulpWrapper, ctx) {
             gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
-                    .pipe(pluginReplace(bundleHTMLAndCSS(ctx.packageName.startsWith("cmf.core"))))
+                    .pipe(pluginReplace(bundleHTMLAndCSS()))
                     // >>>>>>>>>>>>>>>>>>>>>>>>>REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
-                    .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                    
+                    .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
                     .pipe(pluginReplace({patterns: commonRegexPatterns})) 
                     .on('error', pluginUtil.log)
@@ -435,7 +433,7 @@ module.exports = function (gulpWrapper, ctx) {
                                     }))
                                     .pipe(pluginIf(isCustomizedProject === true,  pluginReplace({
                                         patterns: [                                                                                                                    
-                                            { match: new RegExp("(" + customizationFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
+                                            { match: new RegExp("(" + rootFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
                                         ]
                                     })))
                                     .pipe(pluginIf(language === i18n.startupCultureSuffix,  pluginReplace({
@@ -529,7 +527,7 @@ module.exports = function (gulpWrapper, ctx) {
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
             }))
-            .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                
+            .pipe(pluginReplace(excludei18nAndMetadata()))
             .pipe(pluginReplace({ patterns: commonRegexPatterns})) 
             .pipe(pluginReplace({
                 patterns: additionalPatterns
