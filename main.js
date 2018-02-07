@@ -45,7 +45,7 @@ module.exports = function (gulp, ctx) {
     if (!ctx.packagePrefix) {
         var cmfDevTasksConfig;
         try {
-            cmfDevTasksConfig = require('../../../.dev-tasks.json');
+            cmfDevTasksConfig = require(path.join(ctx.__repositoryRoot,'.dev-tasks.json'));
             ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
         } catch (error) {
             pluginUtil.log(pluginUtil.colors.yellow("Unable to find '.dev-tasks'. Continuing..."));
