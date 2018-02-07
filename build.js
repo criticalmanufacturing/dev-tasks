@@ -23,6 +23,8 @@ var pluginWalker = require('async-walker');
 var pluginUtil = require('gulp-util');
 var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
 var pluginTslint = require("gulp-tslint");
+var pluginCleanCSS = require('clean-css');
+var pluginHTMLMinify = require('html-minifier').minify;
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -59,8 +61,7 @@ module.exports = function (gulpWrapper, ctx) {
     ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
     var isCustomizedProject = (ctx.packagePrefix !== "cmf");
     if (isCustomizedProject === true) {
-        var customizationFolderName = path.join(__dirname, "../../../").replace(/\\/g, '/').split('/');
-        customizationFolderName.pop(); // Will pop the last /       
+        var customizationFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/');
         customizationFolderName = customizationFolderName.pop();                
     }
 
@@ -106,6 +107,106 @@ module.exports = function (gulpWrapper, ctx) {
         }
         return patterns;
     }
+
+    var bundleHTMLAndCSS = function (isCore) {
+
+        // function to get the CSS or HTML files
+        getFileContent = function (entry, filePath) {
+            // verify if file exists
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                // absolute path - we can get its content
+                return fs.readFileSync(filePath);
+            } else {
+                // build relative path:
+                // get base dir. Example: c:/Product/CoreHTML/src/packages/cmf.core.controls/
+                // get component path. Example: CoreHTML/src/packages/cmf.core.controls/src/components/combobox/combobox
+                // go up in tree to remove last 'folder'. Result: CoreHTML/src/packages/cmf.core.controls/src/components/combobox
+                // add file path
+                var relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
+                // Verify if file exists
+                if (fs.existsSync(relativeFilePath) && fs.statSync(relativeFilePath).isFile()) {
+                    // relative path exists - we can get its content
+                    return fs.readFileSync(relativeFilePath);
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        fileReplacementFunction = function (match) {
+            // split by register
+            var systemRegisterArray = match.split("System.register(").map(function (entry) {
+                // for each register get component
+                var mappedEntry = entry.match(".Component\\({[\\S\\s]*__metadata\\(");
+                if (mappedEntry != null) { // it is a component?
+                    var changedComponent = entry; // copy component
+
+                    // let's get the template
+                    var templateUrlRegex = /templateUrl: ['|"].*\.html['|"]/g
+                    var templateURL = mappedEntry.input.match(templateUrlRegex);
+                    if (templateURL != null) { // TemplateUrl found
+                        var templatePath = templateURL[0].replace(/templateUrl:.?['|"]/g, '');
+                        var fileContent = getFileContent(entry, templatePath.slice(0, -1)); // remove last quote character and get the file content
+                        if (fileContent != null) {
+                            fileContent = fileContent.toString().trim().replace(/\r?\n|\r/g, ''); // trim and remove line break characters - both are needed
+                            // minify HTML content
+                            var HTMLMinify = pluginHTMLMinify(fileContent, { collapseWhitespace: true, quoteCharacter: "'", caseSensitive: true });
+                            HTMLMinify = HTMLMinify.replace(/"/g, "'").replace(/\\/g, "\\\\"); // replace quotes and slash from file 
+                            changedComponent = entry.replace(templateUrlRegex, `template: "${HTMLMinify}"`); // replace HTML from component and remove last ',' character
+                        } else {
+                            // file not found. Warn developer
+                            pluginUtil.log(pluginUtil.colors.yellow(`Could not find file: ${templatePath}`));
+                        }
+                    }
+
+                    // let's get the styles
+                    var styleUrlRegex = /styleUrls:.?\[[\S\s]*?\]/g
+                    var stylesURL = mappedEntry.input.match(styleUrlRegex);
+                    if (stylesURL != null) { // only run if stylesUrl found
+                        var stylesPaths = stylesURL[0].replace(/styleUrls:.?\[/g, '').slice(0, -1); // remove 'styleUrls' word and last ']' character
+                        // lets split by files "," since stylesUrl is an array of files
+                        var stylesPathsArray = stylesPaths.split(",");
+                        var finalCSS = "";
+                        // for each style...
+                        for (let index = 0; index < stylesPathsArray.length; index++) {
+                            const singleStyle = stylesPathsArray[index].trim().substring(1); // trim and remove first character (quote character)
+                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1)); // remove last quote character and get file content
+                            if (fileContent != null) {
+                                // file found - minify content and append to finalCSS
+                                var minifiedCSS = new pluginCleanCSS({}).minify(fileContent);
+                                finalCSS += `"${minifiedCSS.styles.replace(/"/g, "'").replace(/\\/g, "\\\\")}",`;  // replace quotes and slash from file 
+                            } else {
+                                // error was found. Set finalCSS to null and show warning
+                                finalCSS = null;
+                                pluginUtil.log(pluginUtil.colors.yellow(`Could not find file: ${singleStyle.slice(0, -1)}`));
+                                break;
+                            }
+                        }
+
+                        if (finalCSS != null) { // if final CSS was set don't have errors
+                            changedComponent = changedComponent.replace(styleUrlRegex, `styles: [${finalCSS.slice(0, -1)}]`); // replace CSS and remove last ',' character
+                        }
+                    }
+                    return changedComponent;
+                }
+                return entry;
+            });
+            systemRegisterArray.clean("");
+            var systemRegisterArrayJoined = systemRegisterArray.join("System.register(");
+            return systemRegisterArrayJoined !== "" ? "System.register(" + systemRegisterArrayJoined : "";
+        };
+
+        var filter = ((isCore === true) ? ctx.__CONSTANTS.CoreFolderName : (!isCustomizedProject) ? ctx.__CONSTANTS.MesFolderName : customizationFolderName) + "/src/packages/" + ctx.packageName;
+        var patterns = {
+            patterns: [
+                {
+                    match: new RegExp("System\\.register\\(\"" + filter + "/src.*?\", \\[[\\s\\S]*}\\);", 'g'),
+                    replacement: fileReplacementFunction
+                }
+            ]
+        };
+        return patterns;
+    };
 
     var commonRegexPatterns = [
         { match: new RegExp("cmf.mes.lbos", "gi"), replacement: 'cmf.lbos' },        
@@ -251,8 +352,8 @@ module.exports = function (gulpWrapper, ctx) {
             //gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies            
             gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
-                    gulp.src(ctx.baseDir + ctx.packageName + ".js")  
-
+                    gulp.src(ctx.baseDir + ctx.packageName + ".js")
+                    .pipe(pluginReplace(bundleHTMLAndCSS(ctx.packageName.startsWith("cmf.core"))))
                     // >>>>>>>>>>>>>>>>>>>>>>>>>REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                    
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
@@ -538,10 +639,10 @@ module.exports = function (gulpWrapper, ctx) {
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
                 '__clean-prod',                                
+                '__build-less',                            
                 '__build-and-bundle',
                 '__build-and-bundle-i18n',
                 '__build-and-bundle-metadata',		
-                '__build-less'                            
             ];
             if (pluginYargs.dist) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
