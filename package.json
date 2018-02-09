@@ -1,10 +1,6 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-<<<<<<< HEAD
   "version": "6.0.0-0",
-=======
-  "version": "5.1.12-1",
->>>>>>> d973467... fix(install) allow install when the only package dependencies are links (#35)
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
