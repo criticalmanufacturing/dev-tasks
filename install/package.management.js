@@ -12,13 +12,102 @@ var fs = require("fs"),
 const EXTERNAL_LINK_IGNORE_LIST = [];
 
 module.exports = function (gulpWrapper, ctx) {	
-    var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq, getDirectories = function (path) {
+	var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq;
+
+	var packagesToLink = [];
+
+	var getDirectories = function (path) {
 		try {
 			var directory = fs.readdirSync(path);
             return directory.filter(function (file) {
                 return fs.statSync(path + '/' + file).isDirectory();
             });
 		} catch (e) {return [];}
+	};
+
+	var pathExistsAndIsNotLink = function pathExistsAndIsNotLink(path) {
+		path = pluginPath.normalize(path);
+		if (fs.existsSync(path)) {
+			var stat = fs.statSync(path);
+			return stat.isDirectory();
+		}
+		return false;
+	};
+
+	var getPackagesToLink = function getPackagesToLink(packagesToLink, packageFolder) {
+		const packageConfigPath = pluginPath.join(packageFolder, "package.json");
+		if (fs.existsSync(packageConfigPath)) { // for instance @angular from Library has no package.json
+			const packageObj = pluginfsExtra.readJsonSync(packageConfigPath);
+			if (typeof packageObj.cmfLinkDependencies === "object") {
+				const packagesToDiscover = [];
+
+				Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
+					const package = { name: dependencyName };	
+
+					/**
+					 * We have 2 approaches to do links
+					 * First try to validate for the direct link and link it.
+					 * If it doesn't exist, try to link to the webApp folder (customization).
+					 * In both scenarios, we should try to link to the target folder, not to another link.
+					 */
+					let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop());
+					let webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);
+
+					if (pathExistsAndIsNotLink(internalLink)) { // Link to the dependency directly
+						package.path = internalLink;
+					} else if (ctx.type !== "webApp" && pathExistsAndIsNotLink(webAppLink)) { // avoid to link to itself in the webApp
+						package.path = webAppLink;
+					} else if (pathExistsAndIsNotLink(pluginPath.join(packageFolder, `../${package.name}`))) {
+						package.path = pluginPath.join(packageFolder, `../${package.name}`);
+					}
+
+					// If there is no path, it means it was not possible to link, so it will be an invalid link
+					if (package.path == null) {
+						return;
+					}
+
+					// Normalize paths
+					package.path = pluginPath.normalize(package.path);
+					
+					// Check if we're trying to link to itself and stop
+					if (package.path.startsWith(pluginPath.normalize(ctx.baseDir))) {
+						if (ctx.__verbose) {
+							gulpUtil.log("Skipping symlink", gulpUtil.colors.grey(package.path), "from", gulpUtil.colors.grey(package.name));
+						}
+						return;
+					}
+
+					// Check if this is an external link (out of this repository)
+					// In this case, stops immediately
+					if (pluginYargs.linkExternal === false) {
+						if (
+							!EXTERNAL_LINK_IGNORE_LIST.some(ignoreName => package.name.startsWith(ignoreName)) &&
+							!package.path.toLowerCase().startsWith(ctx.__repositoryRoot.toLowerCase())
+						) {
+							if (ctx.__verbose) {
+								gulpUtil.log("Skipping external symlink", gulpUtil.colors.grey(package.path), ctx.__repositoryRoot, package.name);
+							}
+							return;
+						}
+					}
+
+					// Avoid duplicates and do not allow linking cmf packages in customized web apps
+					if (packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {
+						if (ctx.__verbose) {
+							gulpUtil.log("Symlink to", gulpUtil.colors.grey(package.path), "given by", gulpUtil.colors.grey(packageConfigPath));
+						}
+						packagesToLink.push(package);
+						packagesToDiscover.push(package);
+					}												
+				});
+
+				// After adding all packages of this level, let's discover the new ones
+				// Only do this for webApps because it needs to search for other links to link to
+				if (ctx.type === "webApp") {
+					packagesToDiscover.forEach(package => getPackagesToLink(packagesToLink, package.path));
+				}
+			}
+		}
 	};
 
 	/**
@@ -130,83 +219,6 @@ module.exports = function (gulpWrapper, ctx) {
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
 	    try {	
-			var packagesToLink = [];
-			(function createLinks(packagesToLink, packageFolder) {
-				if (fs.existsSync(packageFolder + '/package.json')) { // for instance @angular from Library has no package.json
-					const packageObj = pluginfsExtra.readJsonSync(packageFolder + '/package.json');
-					if (typeof packageObj.cmfLinkDependencies === "object") {
-						const packagesToDiscover = [];
-
-						Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
-							const package = { name: dependencyName };	
-
-							/**
-							 * We have 2 approaches to do links
-							 * First try to validate for the direct link and link it.
-							 * If it doesn't exist, try to link to the webApp folder (customization).
-							 * In both scenarios, we should try to link to the target folder, not to another link.
-							 */
-							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop());
-							let webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);
-
-							const pathExistsAndIsNotLink = (path) => {
-								path = pluginPath.normalize(path);
-								if (fs.existsSync(path)) {
-									var stat = fs.statSync(path);
-									return stat.isDirectory() && !stat.isSymbolicLink();
-								}
-								return false;
-							}
-
-							if (pathExistsAndIsNotLink(internalLink)) {
-								package.path = internalLink;
-							} else if (ctx.type !== "webApp" && pathExistsAndIsNotLink(webAppLink)) { // avoid to link to itself in the webApp
-								package.path = webAppLink;
-							} else if (pathExistsAndIsNotLink(pluginPath.join(packageFolder, `../${package.name}`))) {
-								package.path = pluginPath.join(packageFolder, `../${package.name}`);
-							}
-
-							// If there is no path, it means it was not possible to link, so it will be an invalid link
-							if (package.path == null) {
-								return;
-							}
-
-							// Normalize paths
-							package.path = pluginPath.normalize(package.path);
-							
-							// Check if we're trying to link to itself and stop
-							if (package.path.startsWith(pluginPath.normalize(ctx.baseDir))) {
-								if (ctx.__verbose) {
-									gulpUtil.log("Skipping symlink", gulpUtil.colors.grey(package.path), "from", gulpUtil.colors.grey(package.name));
-								}
-								return;
-							}
-
-							// Check if this is an external link (out of this repository)
-							// In this case, stops immediately
-							if (pluginYargs.linkExternal === false) {
-								if (
-									!EXTERNAL_LINK_IGNORE_LIST.some(ignoreName => package.name.startsWith(ignoreName)) &&
-									!package.path.startsWith(ctx.__repositoryRoot)
-								) {
-									gulpUtil.log("Skipping external symlink", gulpUtil.colors.grey(package.path));
-									return;
-								}
-							}
-
-							// Avoid duplicates and do not allow linking cmf packages in customized web apps
-							if (packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {
-								packagesToLink.push(package);
-								packagesToDiscover.push(package);
-							}												
-						});
-
-						// After adding all packages of this level, let's discover the new ones
-						packagesToDiscover.forEach(package => createLinks(packagesToLink, package.path));
-					}
-				}
-			})(packagesToLink, ctx.baseDir);
-
 			if (packagesToLink.length > 0) {	
 				// check that node_modules does indeed exist. It may not if the only dependencies are links (common in customization)
 				let nodeModulesPath = pluginPath.join(ctx.baseDir, "node_modules");
@@ -257,7 +269,44 @@ module.exports = function (gulpWrapper, ctx) {
 			console.error(ex);
 			callback();
 		}		
-	}); 
+	});
+
+	gulp.task('__removeLinkedDependencies', function (callback) {
+		var configPath = pluginPath.join(ctx.baseDir, "package.json");
+		var configPathBk = pluginPath.join(ctx.baseDir, "package.json.bk");
+
+		// Read the package
+		// If there is a backup, we should use it instead because there might be related with a previous failed installation
+		var packageConfig = pluginfsExtra.readJSONSync(fs.existsSync(configPathBk) ? configPathBk : configPath);
+
+		// Backup the package.json file
+		if (!fs.existsSync(configPathBk)) {
+			pluginfsExtra.copyFileSync(configPath, configPathBk);
+		}
+		
+		// Remove from dependencies and optional dependencies all links
+		packagesToLink.forEach(packageToLink => {
+			if (packageConfig.dependencies) {
+				delete packageConfig.dependencies[packageToLink.name];
+			}
+			if (packageConfig.optionalDependencies) {
+				delete packageConfig.optionalDependencies[packageToLink.name];
+			}
+		});
+
+		// Save back
+		pluginfsExtra.writeJSONSync(configPath, packageConfig);
+		callback();
+	});
+
+	gulp.task('__restorePackageConfig', function (callback) {
+		var configPathBk = pluginPath.join(ctx.baseDir, "package.json.bk");
+		// Restore the backed up file
+		if (fs.existsSync(configPathBk)) {
+			pluginfsExtra.moveSync(configPathBk, pluginPath.join(ctx.baseDir, "package.json"), {overwrite: true});
+		}
+		callback();
+	});
 
      /**
      * Installation Task
@@ -265,21 +314,39 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('install', function (callback) {
 		var taskArray = [];
+		var link = pluginYargs.link == null || pluginYargs.link === true;
+		var shouldRemoveLinksBeforeInstall = link && ctx.type !== "webApp";
 
 		// Clean tasks
 		if (pluginYargs.clean !== false) {
 			taskArray.push('__cleanLibs');
 		}
 
+		// Compute the links before starting
+		// This allow to manipulate the package.json file if needed
+		if (link) {
+			getPackagesToLink(packagesToLink, ctx.baseDir);
+		}
+
+		// When dealing with packages and links are enabled
+		if (shouldRemoveLinksBeforeInstall) {
+			taskArray.push('__removeLinkedDependencies');
+		}
+
 		// Add tasks
 		taskArray.push('__npmInstall');
-		if (ctx.type === "webApp") {
+		// if (ctx.type === "webApp") {
 			taskArray.push('__dedupeLibs');
-		}
+		// }
 		taskArray.push('__copyLocalTypings');
 
+		// Restore the package.json file
+		if (shouldRemoveLinksBeforeInstall) {
+			taskArray.push('__restorePackageConfig');
+		}
+
 		// Link packages
-		if (pluginYargs.link == null || pluginYargs.link === true) {
+		if (link) {
 			taskArray.push('__linkDependencies');
 		}
 

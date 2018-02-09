@@ -342,23 +342,23 @@ module.exports = function (gulpWrapper, ctx) {
 
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
-            //gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies            
+            // gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies
             gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
-                    // .pipe(pluginReplace(bundleHTMLAndCSS()))
-                    // >>>>>>>>>>>>>>>>>>>>>>>>>REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
+                    .pipe(pluginReplace(bundleHTMLAndCSS()))
+                    // >>>>>>>>>>>>>>>>>>>>>>>>> REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
                     .pipe(pluginReplace({patterns: commonRegexPatterns})) 
                     .on('error', pluginUtil.log)
-                    // .pipe(pluginMinify({
-                    //     ext: {
-                    //         src: '-debug.js',
-                    //         min: '.js'
-                    //     },
-                    //     mangle: false
-                    // }))
+                    .pipe(pluginMinify({
+                        ext: {
+                            src: '-debug.js',
+                            min: '.js'
+                        },
+                        mangle: false
+                    }))
                     .pipe(gulp.dest(ctx.baseDir))                    
                     .on('end', function() {                        
                         // remove any index files created (applies only for cmf.core or cmf.mes)
