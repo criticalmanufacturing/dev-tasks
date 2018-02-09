@@ -60,7 +60,6 @@ module.exports = function (gulpWrapper, ctx) {
     ctx.baseDir = ctx.baseDir.replace(/\\/g, '/');
     ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
 
-    var isCustomizedProject = ctx.isCustomized;
     var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
     var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
@@ -78,7 +77,7 @@ module.exports = function (gulpWrapper, ctx) {
                          // We have a match with more then what we need, so we remove just the i18n modules
                          var systemRegisterArray = match.split("System.register(").map(function (entry) {
                              var mappedEntry = (entry.match("src.*/i18n/.*?\", \\[")) ? "" : entry;
-                             if (isCustomizedProject === true && mappedEntry === entry) {
+                             if (mappedEntry === entry) {
                                  mappedEntry = (entry.match("i18n/.*?\", \\[")) ? "" : entry;
                              }
                              return mappedEntry;
@@ -99,10 +98,8 @@ module.exports = function (gulpWrapper, ctx) {
                 { match: new RegExp(metadataRegexMatch), replacement: function (match) { return 'System.register'; } }
              ]
         };
-        if (isCustomizedProject === true) {
-            patterns.patterns.push({match: new RegExp(i18nCustomizedRegexMatch, 'g'), replacement: i18nReplacementFunction});
-            patterns.patterns.push({match: new RegExp(metadataCustomizedRegexMatch, 'g'), replacement: function (match) { return match.endsWith('System.register') ? 'System.register' : ''; } });
-        }
+        patterns.patterns.push({match: new RegExp(i18nCustomizedRegexMatch, 'g'), replacement: i18nReplacementFunction});
+        patterns.patterns.push({match: new RegExp(metadataCustomizedRegexMatch, 'g'), replacement: function (match) { return match.endsWith('System.register') ? 'System.register' : ''; } });
         return patterns;
     }
 
@@ -341,9 +338,7 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('__build-and-bundle', function (cb) {    
         var promiseToResolve = Promise.resolve(null);
         
-        if (isCustomizedProject === true) {
-            commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
-        }
+        commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
 
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
@@ -351,19 +346,19 @@ module.exports = function (gulpWrapper, ctx) {
             gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
-                    .pipe(pluginReplace(bundleHTMLAndCSS()))
+                    // .pipe(pluginReplace(bundleHTMLAndCSS()))
                     // >>>>>>>>>>>>>>>>>>>>>>>>>REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
                     .pipe(pluginReplace({patterns: commonRegexPatterns})) 
                     .on('error', pluginUtil.log)
-                    .pipe(pluginMinify({
-                        ext: {
-                            src: '-debug.js',
-                            min: '.js'
-                        },
-                        mangle: false
-                    }))
+                    // .pipe(pluginMinify({
+                    //     ext: {
+                    //         src: '-debug.js',
+                    //         min: '.js'
+                    //     },
+                    //     mangle: false
+                    // }))
                     .pipe(gulp.dest(ctx.baseDir))                    
                     .on('end', function() {                        
                         // remove any index files created (applies only for cmf.core or cmf.mes)
@@ -428,14 +423,9 @@ module.exports = function (gulpWrapper, ctx) {
                                         patterns: [                                                                        
                                             // We need to remove the index entry, which is the last one in the file
                                             { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: function () { return ''; } },
-                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
+                                            { match: new RegExp("(" + rootFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
                                         ]
                                     }))
-                                    .pipe(pluginIf(isCustomizedProject === true,  pluginReplace({
-                                        patterns: [                                                                                                                    
-                                            { match: new RegExp("(" + rootFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
-                                        ]
-                                    })))
                                     .pipe(pluginIf(language === i18n.startupCultureSuffix,  pluginReplace({
                                         // When producing the i18n resource file for the DEFAULT culture, we need to convert register names from default to specific, so "/i18n/main.default" become "/i18n/main.pt-PT" or "/i18n/main.en-US". The US is very important because it is the default language
                                         patterns: [                                           
@@ -510,10 +500,8 @@ module.exports = function (gulpWrapper, ctx) {
                 outFile: ctx.packageName + ".metadata.js"                      
             });
             var additionalPatterns = [];
-            if (isCustomizedProject === true) {
-                additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
-                additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
-            }
+            additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
+            additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
                     
             gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
             .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js

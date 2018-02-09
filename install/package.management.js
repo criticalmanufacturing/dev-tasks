@@ -25,13 +25,15 @@ module.exports = function (gulpWrapper, ctx) {
      * Removes stale files and directories. After this a new install is required.
      */
     gulp.task('purge', function (callback) {
-        pluginDel([            
+        pluginDel.sync([
             ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + ctx.metadataFileName,
 			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
 			ctx.baseDir + "package-lock.json", // NPM v5 generated file
             ctx.baseDir + "obj",
-            ctx.baseDir + "bin"], { force: true }, callback);
+			ctx.baseDir + "bin"
+		], { force: true });
+		callback();
     });
 
 	/**
@@ -40,12 +42,10 @@ module.exports = function (gulpWrapper, ctx) {
 	 * There is an exception here, which is the webApp for customized projects. We can't delete the libs folder as we would be removing the HTML5 release.
 	 */
 	gulp.task('__cleanLibs',  function (callback) {	
-		if (ctx.isCustomized !== true || (ctx.isCustomized === true && ctx.type !== "webApp")) {	    		
-			pluginDel.sync([
-				ctx.baseDir + ctx.libsFolder,
-				ctx.baseDir + "package-lock.json", // NPM v5 generated file
-			], { force: true });	
-		}
+		pluginDel.sync([
+			ctx.baseDir + ctx.libsFolder,
+			ctx.baseDir + "package-lock.json", // NPM v5 generated file
+		], { force: true });
 		callback();
 	}); 
 
@@ -139,31 +139,31 @@ module.exports = function (gulpWrapper, ctx) {
 
 						Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
 							const package = { name: dependencyName };	
+
 							/**
-							 * In customization projects:  
-							 * - if the dependency starts with "cmf" we could immediately link to the web app
-							 * - if it does not start with "cmf" it's either a link to a customized package or it can still be something that's not customized, like "@angular".
-							 * We will try to respect what's in the link and follow it:
-							 * - if it does not exist, then we try to look it up in the web app
-							 * - if it exists, most certaintly, it's a link to a customized package
-							 * This approach seems to be the most generic as it does not catalog any exceptions that would be altered later on.
-							 */ 							 
+							 * We have 2 approaches to do links
+							 * First try to validate for the direct link and link it.
+							 * If it doesn't exist, try to link to the webApp folder (customization).
+							 * In both scenarios, we should try to link to the target folder, not to another link.
+							 */
 							let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop());
 							let webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);
-							if (!ctx.isCustomized || !fs.existsSync(webAppLink)) {
-								// When we are already in the webApp and we need flat dependencies
-								webAppLink = pluginPath.join(packageFolder, `../${package.name}`);
+
+							const pathExistsAndIsNotLink = (path) => {
+								path = pluginPath.normalize(path);
+								if (fs.existsSync(path)) {
+									var stat = fs.statSync(path);
+									return stat.isDirectory() && !stat.isSymbolicLink();
+								}
+								return false;
 							}
-							
-							if (ctx.isCustomized === true && (dependencyName.startsWith("cmf.core") || dependencyName.startsWith("cmf.mes")) && ctx.type !== "webApp") {								
-								// Only apply webApp link if the path exists
-								package.path = fs.existsSync(webAppLink) ? webAppLink : internalLink;
-							} else {
-								if (fs.existsSync(internalLink)) {
-									package.path = internalLink;
-								} else if (fs.existsSync(webAppLink)) {
-									package.path = webAppLink;
-								}	
+
+							if (pathExistsAndIsNotLink(internalLink)) {
+								package.path = internalLink;
+							} else if (ctx.type !== "webApp" && pathExistsAndIsNotLink(webAppLink)) { // avoid to link to itself in the webApp
+								package.path = webAppLink;
+							} else if (pathExistsAndIsNotLink(pluginPath.join(packageFolder, `../${package.name}`))) {
+								package.path = pluginPath.join(packageFolder, `../${package.name}`);
 							}
 
 							// If there is no path, it means it was not possible to link, so it will be an invalid link
@@ -177,7 +177,7 @@ module.exports = function (gulpWrapper, ctx) {
 							// Check if we're trying to link to itself and stop
 							if (package.path.startsWith(pluginPath.normalize(ctx.baseDir))) {
 								if (ctx.__verbose) {
-									gulpUtil.log("Skipping symLink", gulpUtil.colors.grey(package.path), "from", gulpUtil.colors.grey(package.name));
+									gulpUtil.log("Skipping symlink", gulpUtil.colors.grey(package.path), "from", gulpUtil.colors.grey(package.name));
 								}
 								return;
 							}
@@ -189,15 +189,13 @@ module.exports = function (gulpWrapper, ctx) {
 									!EXTERNAL_LINK_IGNORE_LIST.some(ignoreName => package.name.startsWith(ignoreName)) &&
 									!package.path.startsWith(ctx.__repositoryRoot)
 								) {
+									gulpUtil.log("Skipping external symlink", gulpUtil.colors.grey(package.path));
 									return;
 								}
 							}
 
 							// Avoid duplicates and do not allow linking cmf packages in customized web apps
-							if (
-								!(ctx.isCustomized === true && ctx.type === "webApp" && (package.name.startsWith("cmf.core") || package.name.startsWith("cmf.mes")))
-								&& packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false
-							) {
+							if (packagesToLink.some((packageToLink) => package.name === packageToLink.name) === false) {
 								packagesToLink.push(package);
 								packagesToDiscover.push(package);
 							}												

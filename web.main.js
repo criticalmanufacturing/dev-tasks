@@ -1,5 +1,4 @@
 var pluginTypescript = require('gulp-typescript');
-var pluginSourceMaps = require('gulp-sourcemaps');
 var pluginConcat = require('gulp-concat');
 var gulpUtil = require('gulp-util');
 var pluginWebServer = require('gulp-webserver');
