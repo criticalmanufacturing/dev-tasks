@@ -113,12 +113,9 @@ module.exports = function (gulpWrapper, ctx) {
 	/**
      * Removes stale files and directories. After this a new install is required.
      */
-    gulp.task('purge', function (callback) {
+    gulp.task('purge', ['__cleanLibs'], function (callback) {
         pluginDel.sync([
-            ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + ctx.metadataFileName,
-			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
-			ctx.baseDir + "package-lock.json", // NPM v5 generated file
             ctx.baseDir + "obj",
 			ctx.baseDir + "bin"
 		], { force: true });
@@ -134,6 +131,7 @@ module.exports = function (gulpWrapper, ctx) {
 		pluginDel.sync([
 			ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + "package-lock.json", // NPM v5 generated file
+			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
 		], { force: true });
 		callback();
 	}); 
