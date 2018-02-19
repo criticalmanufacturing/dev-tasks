@@ -422,7 +422,8 @@ module.exports = function (gulpWrapper, ctx) {
                                     .pipe(pluginReplace({
                                         patterns: [                                                                        
                                             // We need to remove the index entry, which is the last one in the file
-                                            { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: function () { return ''; } },
+                                            { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: '' },
+                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' },
                                             { match: new RegExp("(" + rootFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
                                         ]
                                     }))
