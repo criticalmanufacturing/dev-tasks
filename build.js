@@ -78,7 +78,7 @@ module.exports = function (gulpWrapper, ctx) {
                          var systemRegisterArray = match.split("System.register(").map(function (entry) {
                              var mappedEntry = (entry.match("src.*/i18n/.*?\", \\[")) ? "" : entry;
                              if (mappedEntry === entry) {
-                                 mappedEntry = (entry.match("i18n/.*?\", \\[")) ? "" : entry;
+                                 mappedEntry = (entry.match("/i18n/.*?\", \\[")) ? "" : entry;
                              }
                              return mappedEntry;
                          });
