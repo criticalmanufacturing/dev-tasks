@@ -70,9 +70,6 @@ module.exports = function (gulp, ctx) {
     var buildTasksFunction = require('./build.js');
     buildTasksFunction(gulpWrapper, ctx);
 
-    // Register all test related tasks
-    require('./tests/test.js')(gulpWrapper, ctx);
-
     // Register all tasks related with Package Management
     require('./install/package.management.js')(gulpWrapper, ctx);
 
@@ -99,9 +96,7 @@ module.exports = function (gulp, ctx) {
             web: require('./web.main.js')
         },
         tests: {
-            config: {
-                karma: require('./tests/base.karma.conf.js')
-            }
+
         }
     };
 }
