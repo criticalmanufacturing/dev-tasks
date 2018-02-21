@@ -217,6 +217,12 @@ module.exports = function (gulpWrapper, ctx) {
 	 */
 	gulp.task('__linkDependencies',  function (callback) {	
 	    try {	
+
+			if (packagesToLink.length === 0) {
+				// In case the task was called explicitly (not from install), get packages to link
+				getPackagesToLink(packagesToLink, ctx.baseDir);
+			}
+
 			if (packagesToLink.length > 0) {	
 				// check that node_modules does indeed exist. It may not if the only dependencies are links (common in customization)
 				let nodeModulesPath = pluginPath.join(ctx.baseDir, "node_modules");
@@ -249,7 +255,12 @@ module.exports = function (gulpWrapper, ctx) {
 					scopedPackages.forEach(function(package) {
 						// link each package moving to the right cwd
 						let [scope, packageName] = package.name.split("/");
-						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder + scope });	
+						const scopePath = pluginPath.join(ctx.baseDir, ctx.libsFolder, scope);
+						if (!fs.existsSync(scopePath)) {
+							// Ensure scope path exists
+							fs.mkdirSync(scopePath);
+						}
+						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });	
 					});
 				}
 
