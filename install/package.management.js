@@ -146,6 +146,12 @@ module.exports = function (gulpWrapper, ctx) {
 			command = command + " --silent";
 		}
 
+		// Install production in webApp
+		// Don't need dev dependencies here, just keep it small
+		if (ctx.type === "webApp") {
+			command = command + " --production";
+		}
+
 		try {								
  			pluginExecute(command, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
  				if (error instanceof Error) {
