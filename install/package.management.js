@@ -209,7 +209,13 @@ module.exports = function (gulpWrapper, ctx) {
 				}
 			})(packagesToLink, ctx.baseDir);
 
-			if (packagesToLink.length > 0) {				
+			if (packagesToLink.length > 0) {	
+				// check that node_modules does indeed exist. It may not if the only dependencies are links (common in customization)
+				let nodeModulesPath = pluginPath.join(ctx.baseDir, "node_modules");
+				if (!fs.existsSync(nodeModulesPath)) {
+					fs.mkdirSync(nodeModulesPath)
+				}
+				
 				pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });
 				
 				// In the future, we can use the npm link to link all packages
