@@ -445,7 +445,7 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     gulp.task("__build-typescript", function (callback) {           
-        return gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
+        return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath, { cwd: ctx.baseDir }));                
     });
 
     gulp.task("__build-less", function (callback) {
