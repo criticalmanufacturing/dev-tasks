@@ -241,7 +241,12 @@ module.exports = function (gulpWrapper, ctx) {
 					scopedPackages.forEach(function(package) {
 						// link each package moving to the right cwd
 						let [scope, packageName] = package.name.split("/");
-						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder + scope });	
+						const scopePath = pluginPath.join(ctx.baseDir, ctx.libsFolder, scope);
+						if (!fs.existsSync(scopePath)) {
+							// Ensure scope path exists
+							fs.mkdirSync(scopePath);
+						}
+						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });	
 					});
 				}
 
