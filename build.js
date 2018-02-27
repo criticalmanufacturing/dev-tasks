@@ -23,6 +23,8 @@ var pluginWalker = require('async-walker');
 var pluginUtil = require('gulp-util');
 var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
 var pluginTslint = require("gulp-tslint");
+var pluginCleanCSS = require('clean-css');
+var pluginHTMLMinify = require('html-minifier').minify;
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -57,20 +59,16 @@ module.exports = function (gulpWrapper, ctx) {
     var gulp = gulpWrapper.gulp;
     ctx.baseDir = ctx.baseDir.replace(/\\/g, '/');
     ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
-    var isCustomizedProject = (ctx.packagePrefix !== "cmf");
-    if (isCustomizedProject === true) {
-        var customizationFolderName = path.join(__dirname, "../../../").replace(/\\/g, '/').split('/');
-        customizationFolderName.pop(); // Will pop the last /       
-        customizationFolderName = customizationFolderName.pop();                
-    }
+
+    var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
     var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
     var tslintPath = path.join(ctx.__repositoryRoot, '/node_modules/tslint/bin/tslint');
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
-    var excludei18nAndMetadata = function(isCore) {        
+    var excludei18nAndMetadata = function() {        
         // if it's a customized project, we move 3 levels to find us the root of the repository               
-        var filter = ((isCore === true) ? ctx.__CONSTANTS.CoreFolderName : (!isCustomizedProject) ? ctx.__CONSTANTS.MesFolderName : customizationFolderName) + "/src/packages/" + ctx.packageName;
+        var filter = rootFolderName + "/src/packages/" + ctx.packageName;
         var i18nRegexMatch = "System\\.register\\(\"" + filter + "/src.*/i18n/.*?\", \\[[\\s\\S]*}\\);",
             i18nCustomizedRegexMatch = "System\\.register\\(\"(" + ctx.packageName + "\/src.*\/|src.*\/|)i18n/.*?\", \\[[\\s\\S]*}\\);",
             metadataRegexMatch = "System\\.register\\(\"" + filter + "/src/" + ctx.packageName + ".metadata[\\s\\S]*?System\\.register",
@@ -79,8 +77,8 @@ module.exports = function (gulpWrapper, ctx) {
                          // We have a match with more then what we need, so we remove just the i18n modules
                          var systemRegisterArray = match.split("System.register(").map(function (entry) {
                              var mappedEntry = (entry.match("src.*/i18n/.*?\", \\[")) ? "" : entry;
-                             if (isCustomizedProject === true && mappedEntry === entry) {
-                                 mappedEntry = (entry.match("i18n/.*?\", \\[")) ? "" : entry;
+                             if (mappedEntry === entry) {
+                                 mappedEntry = (entry.match("/i18n/.*?\", \\[")) ? "" : entry;
                              }
                              return mappedEntry;
                          });
@@ -100,12 +98,110 @@ module.exports = function (gulpWrapper, ctx) {
                 { match: new RegExp(metadataRegexMatch), replacement: function (match) { return 'System.register'; } }
              ]
         };
-        if (isCustomizedProject === true) {
-            patterns.patterns.push({match: new RegExp(i18nCustomizedRegexMatch, 'g'), replacement: i18nReplacementFunction});
-            patterns.patterns.push({match: new RegExp(metadataCustomizedRegexMatch, 'g'), replacement: function (match) { return match.endsWith('System.register') ? 'System.register' : ''; } });
-        }
+        patterns.patterns.push({match: new RegExp(i18nCustomizedRegexMatch, 'g'), replacement: i18nReplacementFunction});
+        patterns.patterns.push({match: new RegExp(metadataCustomizedRegexMatch, 'g'), replacement: function (match) { return match.endsWith('System.register') ? 'System.register' : ''; } });
         return patterns;
     }
+
+    var bundleHTMLAndCSS = function () {
+
+        // function to get the CSS or HTML files
+        getFileContent = function (entry, filePath) {
+            // verify if file exists
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                // absolute path - we can get its content
+                return fs.readFileSync(filePath);
+            } else {
+                // build relative path:
+                // get base dir. Example: c:/Product/CoreHTML/src/packages/cmf.core.controls/
+                // get component path. Example: CoreHTML/src/packages/cmf.core.controls/src/components/combobox/combobox
+                // go up in tree to remove last 'folder'. Result: CoreHTML/src/packages/cmf.core.controls/src/components/combobox
+                // add file path
+                var relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
+                // Verify if file exists
+                if (fs.existsSync(relativeFilePath) && fs.statSync(relativeFilePath).isFile()) {
+                    // relative path exists - we can get its content
+                    return fs.readFileSync(relativeFilePath);
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        fileReplacementFunction = function (match) {
+            // split by register
+            var systemRegisterArray = match.split("System.register(").map(function (entry) {
+                // for each register get component
+                var mappedEntry = entry.match(".Component\\({[\\S\\s]*__metadata\\(");
+                if (mappedEntry != null) { // it is a component?
+                    var changedComponent = entry; // copy component
+
+                    // let's get the template
+                    var templateUrlRegex = /templateUrl: ['|"].*\.html['|"]/g
+                    var templateURL = mappedEntry.input.match(templateUrlRegex);
+                    if (templateURL != null) { // TemplateUrl found
+                        var templatePath = templateURL[0].replace(/templateUrl:.?['|"]/g, '');
+                        var fileContent = getFileContent(entry, templatePath.slice(0, -1)); // remove last quote character and get the file content
+                        if (fileContent != null) {
+                            fileContent = fileContent.toString().trim().replace(/\r?\n|\r/g, ''); // trim and remove line break characters - both are needed
+                            // minify HTML content
+                            var HTMLMinify = pluginHTMLMinify(fileContent, { collapseWhitespace: true, quoteCharacter: "'", caseSensitive: true });
+                            HTMLMinify = HTMLMinify.replace(/"/g, "'").replace(/\\/g, "\\\\"); // replace quotes and slash from file 
+                            changedComponent = entry.replace(templateUrlRegex, `template: "${HTMLMinify}"`); // replace HTML from component and remove last ',' character
+                        } else {
+                            // file not found. Warn developer
+                            pluginUtil.log(pluginUtil.colors.yellow(`Could not find file: ${templatePath}`));
+                        }
+                    }
+
+                    // let's get the styles
+                    var styleUrlRegex = /styleUrls:.?\[[\S\s]*?\]/g
+                    var stylesURL = mappedEntry.input.match(styleUrlRegex);
+                    if (stylesURL != null) { // only run if stylesUrl found
+                        var stylesPaths = stylesURL[0].replace(/styleUrls:.?\[/g, '').slice(0, -1); // remove 'styleUrls' word and last ']' character
+                        // lets split by files "," since stylesUrl is an array of files
+                        var stylesPathsArray = stylesPaths.split(",");
+                        var finalCSS = "";
+                        // for each style...
+                        for (let index = 0; index < stylesPathsArray.length; index++) {
+                            const singleStyle = stylesPathsArray[index].trim().substring(1); // trim and remove first character (quote character)
+                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1)); // remove last quote character and get file content
+                            if (fileContent != null) {
+                                // file found - minify content and append to finalCSS
+                                var minifiedCSS = new pluginCleanCSS({}).minify(fileContent);
+                                finalCSS += `"${minifiedCSS.styles.replace(/"/g, "'").replace(/\\/g, "\\\\")}",`;  // replace quotes and slash from file 
+                            } else {
+                                // error was found. Set finalCSS to null and show warning
+                                finalCSS = null;
+                                pluginUtil.log(pluginUtil.colors.yellow(`Could not find file: ${singleStyle.slice(0, -1)}`));
+                                break;
+                            }
+                        }
+
+                        if (finalCSS != null) { // if final CSS was set don't have errors
+                            changedComponent = changedComponent.replace(styleUrlRegex, `styles: [${finalCSS.slice(0, -1)}]`); // replace CSS and remove last ',' character
+                        }
+                    }
+                    return changedComponent;
+                }
+                return entry;
+            });
+            systemRegisterArray.clean("");
+            var systemRegisterArrayJoined = systemRegisterArray.join("System.register(");
+            return systemRegisterArrayJoined !== "" ? "System.register(" + systemRegisterArrayJoined : "";
+        };
+
+        var filter = rootFolderName + "/src/packages/" + ctx.packageName;
+        var patterns = {
+            patterns: [
+                {
+                    match: new RegExp("System\\.register\\(\"" + filter + "/src.*?\", \\[[\\s\\S]*}\\);", 'g'),
+                    replacement: fileReplacementFunction
+                }
+            ]
+        };
+        return patterns;
+    };
 
     var commonRegexPatterns = [
         { match: new RegExp("cmf.mes.lbos", "gi"), replacement: 'cmf.lbos' },        
@@ -242,19 +338,17 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('__build-and-bundle', function (cb) {    
         var promiseToResolve = Promise.resolve(null);
         
-        if (isCustomizedProject === true) {
-            commonRegexPatterns.push({ match: new RegExp(customizationFolderName + "\/src\/packages\/", "gi"), replacement: '' });
-        }
+        commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
 
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
-            //gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies            
+            // gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies
             gulp.src('').pipe(pluginShell('node --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
-                    gulp.src(ctx.baseDir + ctx.packageName + ".js")  
-
-                    // >>>>>>>>>>>>>>>>>>>>>>>>>REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
-                    .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                    
+                    gulp.src(ctx.baseDir + ctx.packageName + ".js")
+                    .pipe(pluginReplace(bundleHTMLAndCSS()))
+                    // >>>>>>>>>>>>>>>>>>>>>>>>> REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
+                    .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
                     .pipe(pluginReplace({patterns: commonRegexPatterns})) 
                     .on('error', pluginUtil.log)
@@ -328,15 +422,11 @@ module.exports = function (gulpWrapper, ctx) {
                                     .pipe(pluginReplace({
                                         patterns: [                                                                        
                                             // We need to remove the index entry, which is the last one in the file
-                                            { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: function () { return ''; } },
-                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
+                                            { match: new RegExp("System.register\\(\"" + ctx.packageName + "-" + language + "-index[\\s\\S]*"), replacement: '' },
+                                            { match: new RegExp("(" + ctx.__CONSTANTS.CoreFolderName + "|" + ctx.__CONSTANTS.MesFolderName + ")\/src\/packages\/", "gi"), replacement: '' },
+                                            { match: new RegExp("(" + rootFolderName + ")\/src\/packages\/", "gi"), replacement: '' }
                                         ]
                                     }))
-                                    .pipe(pluginIf(isCustomizedProject === true,  pluginReplace({
-                                        patterns: [                                                                                                                    
-                                            { match: new RegExp("(" + customizationFolderName + ")\/src\/packages\/", "gi"), replacement: '' }                                                                      
-                                        ]
-                                    })))
                                     .pipe(pluginIf(language === i18n.startupCultureSuffix,  pluginReplace({
                                         // When producing the i18n resource file for the DEFAULT culture, we need to convert register names from default to specific, so "/i18n/main.default" become "/i18n/main.pt-PT" or "/i18n/main.en-US". The US is very important because it is the default language
                                         patterns: [                                           
@@ -411,10 +501,8 @@ module.exports = function (gulpWrapper, ctx) {
                 outFile: ctx.packageName + ".metadata.js"                      
             });
             var additionalPatterns = [];
-            if (isCustomizedProject === true) {
-                additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
-                additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
-            }
+            additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
+            additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
                     
             gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
             .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
@@ -428,7 +516,7 @@ module.exports = function (gulpWrapper, ctx) {
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
             }))
-            .pipe(pluginReplace(excludei18nAndMetadata(ctx.packageName.startsWith("cmf.core"))))                
+            .pipe(pluginReplace(excludei18nAndMetadata()))
             .pipe(pluginReplace({ patterns: commonRegexPatterns})) 
             .pipe(pluginReplace({
                 patterns: additionalPatterns
@@ -538,10 +626,10 @@ module.exports = function (gulpWrapper, ctx) {
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
                 '__clean-prod',                                
+                '__build-less',                            
                 '__build-and-bundle',
                 '__build-and-bundle-i18n',
                 '__build-and-bundle-metadata',		
-                '__build-less'                            
             ];
             if (pluginYargs.dist) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages

@@ -42,18 +42,24 @@ module.exports = function (gulp, ctx) {
         }
     });
 
-    if (!ctx.packagePrefix) {
-        var cmfDevTasksConfig;
+    // Configuration file
+    if (!ctx.__config) {
+        // Load the file from the system
+        var configFilePath = path.join(ctx.__repositoryRoot, '.dev-tasks.json');
         try {
-            cmfDevTasksConfig = require('../../../.dev-tasks.json');
-            ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
-        } catch (error) {
+            ctx.__config = require(configFilePath);
+        } catch(error) {
             pluginUtil.log(pluginUtil.colors.yellow("Unable to find '.dev-tasks'. Continuing..."));
-            ctx.packagePrefix = "cmf";
+            ctx.__config = {};
         }
     }
 
-    ctx.isCustomized = ctx.packagePrefix !== "cmf";
+    // Package prefix
+    if (!ctx.packagePrefix) {
+        ctx.packagePrefix = ctx.__config.packagePrefix || "cmf";
+    }
+
+    ctx.isCustomized = ctx.packagePrefix !== "cmf.core" && ctx.packagePrefix !== "cmf.mes";
     if (gulp == null) {return;}
 	
     // Load metadata file
@@ -63,9 +69,6 @@ module.exports = function (gulp, ctx) {
     // Register all build related tasks
     var buildTasksFunction = require('./build.js');
     buildTasksFunction(gulpWrapper, ctx);
-
-    // Register all test related tasks
-    require('./tests/test.js')(gulpWrapper, ctx);
 
     // Register all tasks related with Package Management
     require('./install/package.management.js')(gulpWrapper, ctx);
@@ -93,9 +96,7 @@ module.exports = function (gulp, ctx) {
             web: require('./web.main.js')
         },
         tests: {
-            config: {
-                karma: require('./tests/base.karma.conf.js')
-            }
+
         }
     };
 }
