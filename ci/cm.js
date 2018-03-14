@@ -11,12 +11,12 @@ module.exports = function (gulpWrapper, ctx) {
     var gulp = gulpWrapper.gulp;
     
     // Parse global parameters that need to be used by this plugin
-    // used by tasks check-version and set-version
+    // used by tasks check-version, set-version and npm-dist-tag-add
     var version = args.version;
 	// used by task npm-dist-tag-copy-version
 	var sourceTag = args.sourceTag;
 	var targetTag = args.targetTag;
-	// used by task npm-dist-tag-del
+	// used by tasks npm-dist-tag-add and npm-dist-tag-rm
 	var tag = args.tag;
 
     /**
