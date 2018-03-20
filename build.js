@@ -622,7 +622,13 @@ module.exports = function (gulpWrapper, ctx) {
      * Internal Build task
      */
     gulp.task('__internal-build', function (callback) {
-        
+        // set default tasks for develpment
+        var developmentTasks = [
+            '__clean-dev',
+            '__build-typescript',
+            '__lint',
+            '__build-less'
+        ];
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
                 '__clean-prod',                                
@@ -635,19 +641,17 @@ module.exports = function (gulpWrapper, ctx) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
                 tasksToExecute.splice(1, 0, ['__build-typescript']);
             }
-        if (ctx.type !== "dependency") {
+            if (ctx.type !== "dependency") {
                 tasksToExecute.push('__lint');
             }
             gulpWrapper.seq(tasksToExecute, callback);
-        }else{
-            gulpWrapper.seq(
-            [
-                '__clean-dev',
-                '__build-typescript',
-                '__lint',
-                '__build-less'
-            ],
-            callback);
+        } else if (ctx.type === "workflow-tasks") {
+            // If it workflow tasks , take in account this will not be build in production
+            // We need to generate languages files manually
+            developmentTasks.push("__internal-replace-defaults-workflow-tasks");
+            gulpWrapper.seq(developmentTasks, callback);
+        } else {
+            gulpWrapper.seq(developmentTasks, callback);
         }
     });
 
@@ -667,6 +671,25 @@ module.exports = function (gulpWrapper, ctx) {
             gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", ['__lint', '__build-typescript']);
             gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.less", ['__build-less']);
             //cb();
+        });
+    });
+
+    gulp.task("__internal-replace-defaults-workflow-tasks", function(cb) {
+        // Look for all i18n files that ends with default.js
+        // Create a copy of them with a name "name"."startupculture".js
+        
+        return pluginWalker(ctx.baseDir + ctx.sourceFolder).then(function(files) {
+            files
+            .filter(function(file) { 
+                return file.endsWith("default.js") && path.relative("i18n", file);
+            })
+            .forEach(function(defaultFile) {
+                var startupCultureFile = defaultFile.replace("default", i18n.startupCulture);
+                if (!fs.existsSync(startupCultureFile)) {
+                    var contentToCopy = fs.readFileSync(defaultFile);
+                    fs.writeFileSync(startupCultureFile, contentToCopy);
+                }
+            });
         });
     });
     //#endregion
