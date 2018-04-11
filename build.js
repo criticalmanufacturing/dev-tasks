@@ -42,7 +42,7 @@ var excludeNodeModulesRegExp = { match: new RegExp("System\\.register\\(\"node_m
 var excludeNodeModulesDepRegExp = { match: new RegExp("node_modules\/", 'g'), replacement: "" };
 
 var i18n = {
-    supportedCultures: ["en-US", "pt-PT", "vi-VN"],
+    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW"],
     startupCulture: "en-US",
     startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
 }
