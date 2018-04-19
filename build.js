@@ -2,6 +2,7 @@ var path = require('path');
 var util = require('util');
 var ncp = require('ncp').ncp;
 var fs = require("fs");
+var glob = require("glob");
  
 var __cwd = path.resolve('.'); //where the process was launched from
 var __tasksdir = __dirname; //where the tools are placed
@@ -619,15 +620,90 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     /**
+     * Build Documentation Database(s) for Search task
+     */
+    gulp.task('__build-db', function (callback) {             
+        if (ctx.type === "documentation") {
+            var elasticlunr = require("elasticlunr");
+    
+            var documentsIndex = elasticlunr(function () {
+                this.addField("id");
+                this.addField("title")
+                this.addField("text");                     
+                this.saveDocument(false);
+            });
+        
+            var documentsList = [];
+        
+            glob(path.join(ctx.baseDir, "./assets/**/*.md"), function (err, matches) {
+                if (err) {
+                    throw err;
+                }
+            
+                matches.forEach(function (absoluteFilePath) {
+                    // GET
+                    //
+            
+                    // title = 1st "#" to EOL
+                    var firstTitle = fs.readFileSync(absoluteFilePath).toString().split("\n")[0] !== undefined ? fs.readFileSync(absoluteFilePath).toString().split("\n")[0] : [""];
+                    firstTitle = firstTitle[0] == "#" ? firstTitle.substring(1, firstTitle.length).trim() : "<no title>";
+            
+                    // snippet
+                    var firstLine = fs.readFileSync(absoluteFilePath).toString().split("\n")[1] !== undefined ? fs.readFileSync(absoluteFilePath).toString().split("\n") : ["<no text>"];
+                    if (firstTitle !== "<no title>" && firstLine !== ["<no text>"]) {
+                        firstLine.splice(0, 1);
+                    }
+                    firstLine = firstLine.join("\n").trim().substring(0, 300);
+                    firstLine = firstLine.replace(/!\[.*?\]\[.*?\]/g, "");
+            
+                    var relativeFilePath = path.normalize(path.relative(ctx.baseDir, absoluteFilePath));
+
+                    //SAVE
+                    //
+                    var documentToIndex = {          
+                        id: path.join(ctx.packageName, relativeFilePath),
+                        title: firstTitle,
+                        text: fs.readFileSync(absoluteFilePath).toString()
+                    };
+                    documentsIndex.addDoc(documentToIndex);
+            
+                    var documentToList = {
+                        id: documentToIndex.id,
+                        //path: ctx.packageName + '/' + routerPath, // path: ctx.packageURL + '/' + routerPath,
+                        title: documentToIndex.title,
+                        snippet: firstLine,
+                        thumbnail: ""
+                    }
+                    documentsList.push(documentToList);
+            
+                });
+            
+                // PERSIST
+                //
+                var documentsToSave = [];
+                documentsToSave.push(documentsIndex);
+                documentsToSave.push(documentsList);
+            
+                fs.writeFile(path.join(ctx.baseDir, './assets/__documentsDB.json'), JSON.stringify(documentsToSave), function (err) {
+                    if (err) throw err; 
+                });
+            });            
+        }
+
+        callback();        
+      });
+    
+    /**
      * Internal Build task
      */
     gulp.task('__internal-build', function (callback) {
-        // set default tasks for develpment
+        // set default tasks for development
         var developmentTasks = [
             '__clean-dev',
             '__build-typescript',
             '__lint',
-            '__build-less'
+            '__build-less',
+            '__build-db'
         ];
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
