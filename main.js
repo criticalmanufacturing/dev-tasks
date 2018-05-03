@@ -42,10 +42,18 @@ module.exports = function (gulp, ctx) {
         }
     });
 
+    const cmfDevTasksConfig = require(path.join(ctx.__repositoryRoot, "./.dev-tasks.json"));
+    ctx.__cmfDevTasksConfig = cmfDevTasksConfig;
+    Object.defineProperty(cmfDevTasksConfig, "__npm", {
+        configurable: true,
+        enumerable: true,
+        get: function(){
+            return cmfDevTasksConfig.npm ? path.resolve(path.join(ctx.__repositoryRoot, cmfDevTasksConfig.npm)) : null;
+        }
+    });
+
     if (!ctx.packagePrefix) {
-        var cmfDevTasksConfig;
         try {
-            cmfDevTasksConfig = require('../../../.dev-tasks.json');
             ctx.packagePrefix = cmfDevTasksConfig.packagePrefix;
         } catch (error) {
             pluginUtil.log(pluginUtil.colors.yellow("Unable to find '.dev-tasks'. Continuing..."));

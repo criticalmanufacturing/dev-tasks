@@ -121,11 +121,11 @@ module.exports = {
     cmd:
     {
         /**
-        * Check if gulp is running with Administration priviledges
+        * Check if gulp is running with Administration privileges
         * 
         * @param function(boolean) callback Callback function
         */
-        hasAdministrationPriviledges: function (callback) {
+        hasAdministrationPrivileges: function (callback) {
             pluginExecute('net session', function (result, stdout, stderr) {
                 callback(result === null || result.code === 0);
             });

@@ -43,7 +43,7 @@ module.exports = function (gulpWrapper, ctx) {
      * Compile typescript files
      */
     gulp.task('build', function (cb) {
-        return gulp.src('').pipe(pluginShell("node " + typescriptCompilerPath, { cwd: ctx.baseDir }));
+        return gulp.src('').pipe(pluginShell(process.execPath + " " + typescriptCompilerPath, { cwd: ctx.baseDir }));
     });
 
     gulp.task('deploy', function(cb){
