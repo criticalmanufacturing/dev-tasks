@@ -622,10 +622,10 @@ module.exports = function (gulpWrapper, ctx) {
     /**
      * Build Documentation Database(s) for Search task
      */
-    gulp.task('__build-db', function (callback) {             
-        if (ctx.type === "documentation") {
+    gulp.task('__build-db', function (callback) {
+        if ( fs.existsSync(path.join(ctx.baseDir, "./assets/")) ) {             
             var elasticlunr = require("elasticlunr");
-    
+
             var documentsIndex = elasticlunr(function () {
                 this.addField("id");
                 this.addField("title")
@@ -634,7 +634,7 @@ module.exports = function (gulpWrapper, ctx) {
             });
         
             var documentsList = [];
-        
+
             glob(path.join(ctx.baseDir, "./assets/**/*.md"), function (err, matches) {
                 if (err) {
                     throw err;
@@ -669,13 +669,11 @@ module.exports = function (gulpWrapper, ctx) {
             
                     var documentToList = {
                         id: documentToIndex.id,
-                        //path: ctx.packageName + '/' + routerPath, // path: ctx.packageURL + '/' + routerPath,
                         title: documentToIndex.title,
                         snippet: firstLine,
                         thumbnail: ""
                     }
-                    documentsList.push(documentToList);
-            
+                    documentsList.push(documentToList);      
                 });
             
                 // PERSIST
@@ -689,7 +687,6 @@ module.exports = function (gulpWrapper, ctx) {
                 });
             });            
         }
-
         callback();        
       });
     
@@ -702,9 +699,11 @@ module.exports = function (gulpWrapper, ctx) {
             '__clean-dev',
             '__build-typescript',
             '__lint',
-            '__build-less',
-            '__build-db'
+            '__build-less'
         ];
+        if (ctx.type === "documentation") {
+            developmentTasks.push("__build-db");
+        }
         if (pluginYargs.production || ctx.type === "dependency") {
             var tasksToExecute = [
                 '__clean-prod',                                
