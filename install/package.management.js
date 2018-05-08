@@ -54,7 +54,7 @@ module.exports = function (gulpWrapper, ctx) {
     */ 
     gulp.task('__npmInstall',  function(callback) {
 		const npm = ctx.__cmfDevTasksConfig && ctx.__cmfDevTasksConfig.__npm ? ctx.__cmfDevTasksConfig.__npm : "npm";
-		var command = `${npm} ${pluginYargs.ci ? 'ci' : 'install'} --scripts-prepend-node-path`;
+		var command = `${npm} ${pluginYargs.ci ? 'ci' : 'install'} --scripts-prepend-node-path=true`;
 
 		if (!ctx.__verbose) {
 			command = command + " --silent";

@@ -249,7 +249,7 @@ module.exports = function (gulpWrapper, ctx) {
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
             //gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies            
-            gulp.src('').pipe(pluginShell(process.execPath + ' --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
+            gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                                    
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")  
 
