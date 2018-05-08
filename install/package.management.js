@@ -78,7 +78,7 @@ module.exports = function (gulpWrapper, ctx) {
      */ 
     gulp.task('__dedupeLibs',  function(callback) {	
 		try {								
- 			pluginExecute(`${ctx.__cmfDevTasksConfig && ctx.__cmfDevTasksConfig.__npm ? ctx.__cmfDevTasksConfig.__npm : "npm"} dedupe --scripts-prepend-node-path`, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
+ 			pluginExecute(`${ctx.__cmfDevTasksConfig && ctx.__cmfDevTasksConfig.__npm ? ctx.__cmfDevTasksConfig.__npm : "npm"} dedupe --scripts-prepend-node-path=true`, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
  				if (error instanceof Error) {
  					console.error(stderr);
  				}
