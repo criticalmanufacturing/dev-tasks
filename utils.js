@@ -125,7 +125,7 @@ module.exports = {
         * 
         * @param function(boolean) callback Callback function
         */
-        hasAdministrationPrivileges: function (callback) {
+        hasAdministrationPriviledges: function (callback) {
             pluginExecute('net session', function (result, stdout, stderr) {
                 callback(result === null || result.code === 0);
             });
