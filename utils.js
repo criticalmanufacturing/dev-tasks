@@ -121,7 +121,7 @@ module.exports = {
     cmd:
     {
         /**
-        * Check if gulp is running with Administration priviledges
+        * Check if gulp is running with Administration privileges
         * 
         * @param function(boolean) callback Callback function
         */
