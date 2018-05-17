@@ -503,7 +503,9 @@ module.exports = function (gulpWrapper, ctx) {
             var additionalPatterns = [];
             additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
             additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
-                    
+            
+            const pjson = require(ctx.baseDir + "package.json");
+
             gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
             .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
             .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
@@ -515,6 +517,13 @@ module.exports = function (gulpWrapper, ctx) {
             .pipe(pluginReplace({
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
+            })).pipe(pluginReplace({
+                patterns: [
+                  {
+                    match: /version: "",/,
+                    replacement: 'version: "' + pjson.version + '",'
+                  }
+                ]
             }))
             .pipe(pluginReplace(excludei18nAndMetadata()))
             .pipe(pluginReplace({ patterns: commonRegexPatterns})) 
@@ -649,6 +658,7 @@ module.exports = function (gulpWrapper, ctx) {
             // If it workflow tasks , take in account this will not be build in production
             // We need to generate languages files manually
             developmentTasks.push("__internal-replace-defaults-workflow-tasks");
+            developmentTasks.push("__update_iot_metadata_version");
             gulpWrapper.seq(developmentTasks, callback);
         } else {
             gulpWrapper.seq(developmentTasks, callback);
@@ -691,6 +701,19 @@ module.exports = function (gulpWrapper, ctx) {
                 }
             });
         });
+    });
+
+    gulp.task("__update_iot_metadata_version", function(cb) {
+        const pjson = require(ctx.baseDir + "package.json");
+        return gulp.src([ctx.baseDir + ctx.sourceFolder + "metadata.js"]).pipe(pluginReplace({
+            patterns: [
+              {
+                match: /version: "",/,
+                replacement: 'version: "' + pjson.version + '",'
+              }
+            ]
+        })).pipe(gulp.dest(ctx.baseDir + ctx.sourceFolder));
+
     });
     //#endregion
 
