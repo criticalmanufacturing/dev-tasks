@@ -1,6 +1,6 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-  "version": "6.1.0-3",
+  "version": "6.1.0-4",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {

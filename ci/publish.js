@@ -37,7 +37,7 @@ module.exports = function (gulpWrapper, ctx) {
 
         return gulp
             .src("package.json", {cwd: ctx.baseDir})
-            .pipe(shell(`npm version ${targetVersion} --no-git-tag-version`, {cwd: ctx.baseDir, verbose: true}));
+            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} version ${targetVersion} --no-git-tag-version --scripts-prepend-node-path=true`, {cwd: ctx.baseDir, verbose: true}));
     });
 
     /**
@@ -50,7 +50,7 @@ module.exports = function (gulpWrapper, ctx) {
 
         return gulp
             .src("package.json", {cwd: ctx.baseDir})
-            .pipe(shell(`npm publish --tag=${tag} --git-tag-version=false`, {cwd: ctx.baseDir, verbose: true}));
+            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} publish --tag=${tag} --git-tag-version=false --scripts-prepend-node-path=true`, {cwd: ctx.baseDir, verbose: true}));
     });
 
 
