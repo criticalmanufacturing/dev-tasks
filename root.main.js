@@ -68,7 +68,7 @@ module.exports = {
         projects.forEach(function (project) {
             actions.forEach(function (action) {
                 operations.push({
-                    command: "node",
+                    command: '\"' + process.execPath + '\"',
                     arguments: [path.join(__dirname, "../", "gulp", "bin", "gulp.js"), action].concat(args),
                     cwd: path.join(baseDir, project)
                 });

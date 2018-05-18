@@ -54,6 +54,14 @@ module.exports = function (gulp, ctx) {
         }
     }
 
+	Object.defineProperty(ctx.__config, "__npm", {
+        configurable: true,
+        enumerable: true,
+        get: function(){
+            return ctx.__config.npm ? path.resolve(path.join(ctx.__repositoryRoot, ctx.__config.npm)) : null;
+        }
+    });
+
     // Package prefix
     if (!ctx.packagePrefix) {
         ctx.packagePrefix = ctx.__config.packagePrefix || "cmf";
