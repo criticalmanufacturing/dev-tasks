@@ -853,7 +853,7 @@ module.exports = function (gulpWrapper, ctx) {
             ], { cwd: ctx.baseDir })
             .pipe(pluginI18nTransform({
                 base: ctx.baseDir,
-                languages: i18n.supportedCultures.filter(function(culture) { return culture !== i18n.startupCulture; }),
+                languages: i18n.supportedCultures,
                 dest: "pot"
             }))
             .pipe(gulp.dest(ctx.baseDir));
@@ -870,7 +870,7 @@ module.exports = function (gulpWrapper, ctx) {
             ], { cwd: ctx.baseDir })
             .pipe(pluginI18nTransform({
                 base: ctx.baseDir,
-                languages: i18n.supportedCultures.filter(function(culture) { return culture !== i18n.startupCulture; }),
+                languages: i18n.supportedCultures,
                 dest: "ts"
             }))
             .pipe(gulp.dest(ctx.baseDir));
