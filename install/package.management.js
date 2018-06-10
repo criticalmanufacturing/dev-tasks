@@ -187,9 +187,9 @@ module.exports = function (gulpWrapper, ctx) {
 	/*
 	* If there is a "local-typings" folder, then the typings inside are not available in their own npm packages or in the npm @types repository.
 	* In these cases we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
+	* The contents of a "/dist" folder, if exists, will also be copied, allowing the override of distribution files
 	*/
 	gulp.task('__copyLocalTypings', function (callback) {
-		var promise = Promise.resolve(null);
     	try {
 	    	// If we have an i18n module file we generate the bundle, otherwise, we skip it	    	
 			if (fs.lstatSync(ctx.baseDir + "local-typings").isDirectory()) {
@@ -199,24 +199,44 @@ module.exports = function (gulpWrapper, ctx) {
 					folders.forEach(function(folder) {
 						// Check if folder already exists
 						try {
-							if (fs.lstatSync(ctx.baseDir + ctx.libsFolder + folder).isDirectory()) {								
-								promiseArray.push(gulp.src([ctx.baseDir + "local-typings/" + folder + "/" + folder + ".d.ts"])
-						    		.pipe(pluginRename("index.d.ts"))				    
-						    		.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/")));
+							if (fs.lstatSync(ctx.baseDir + ctx.libsFolder + folder).isDirectory()) {
+								// Handle index.d.ts for typings
+								promiseArray.push(new Promise((resolve, reject) => {
+									gulp.src([ctx.baseDir + "local-typings/" + folder + "/" + folder + ".d.ts"])
+									.pipe(pluginRename("index.d.ts"))				    
+									.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/"))
+									.on('end', resolve);
+								}));
+
+								// Handle dist folder overrides
+								if (fs.lstatSync(ctx.baseDir + "local-typings/" + folder + "/dist").isDirectory()) {
+									promiseArray.push(new Promise((resolve, reject) => {
+										gulp.src([ctx.baseDir + "local-typings/"+ folder + "/dist/**/*"])
+										.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/dist/"))
+										.on('end', resolve);
+									}));
+								}
 							}
 						} catch(error){
 							//folder does not exist
 						}
 					});
 					if (promiseArray.length > 0) {
-						promise = Promise.all(promiseArray);
+						Promise.all(promiseArray).then(() => {
+							callback();
+						});
+						return;
+					} else {
+						callback();
+						return;
 					}
 				}			
 	        } 
     	} catch(error){
 			//folder does not exist
 		}
-        return promise;			
+		callback();
+		return;
 	});
 
 	/**
