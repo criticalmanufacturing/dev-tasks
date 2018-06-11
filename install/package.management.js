@@ -187,7 +187,6 @@ module.exports = function (gulpWrapper, ctx) {
 	/*
 	* If there is a "local-typings" folder, then the typings inside are not available in their own npm packages or in the npm @types repository.
 	* In these cases we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
-	* The contents of a "/dist" folder, if exists, will also be copied, allowing the override of distribution files
 	*/
 	gulp.task('__copyLocalTypings', function (callback) {
     	try {
@@ -207,15 +206,6 @@ module.exports = function (gulpWrapper, ctx) {
 									.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/"))
 									.on('end', resolve);
 								}));
-
-								// Handle dist folder overrides
-								if (fs.lstatSync(ctx.baseDir + "local-typings/" + folder + "/dist").isDirectory()) {
-									promiseArray.push(new Promise((resolve, reject) => {
-										gulp.src([ctx.baseDir + "local-typings/"+ folder + "/dist/**/*"])
-										.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/dist/"))
-										.on('end', resolve);
-									}));
-								}
 							}
 						} catch(error){
 							//folder does not exist
