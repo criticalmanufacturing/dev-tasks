@@ -721,6 +721,9 @@ module.exports = function (gulpWrapper, ctx) {
                 '__build-and-bundle-i18n',
                 '__build-and-bundle-metadata',		
             ];
+            if (ctx.type === "documentation") {
+                tasksToExecute.push("__build-db");
+            }
             if (pluginYargs.dist) {
                 // If we are running with the dist flag on, we also need to produce the typings for all packages
                 tasksToExecute.splice(1, 0, ['__build-typescript']);
