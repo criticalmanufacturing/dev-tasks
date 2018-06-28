@@ -12,3 +12,4 @@
 package.json
 app.ts
 config.json
+npm-shrinkwrap.json
