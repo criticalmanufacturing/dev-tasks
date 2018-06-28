@@ -221,12 +221,15 @@ module.exports = function (gulpWrapper, ctx) {
 						return;
 					}
 				}			
-	        } 
+			}
+			else {
+				callback();
+				return;
+			} 
     	} catch(error){
 			//folder does not exist
+			callback();
 		}
-		callback();
-		return;
 	});
 
 	/**
