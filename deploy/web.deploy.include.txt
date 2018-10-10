@@ -14,3 +14,4 @@ app.ts
 config.json
 npm-shrinkwrap.json
 manifest.json
+robots.txt
