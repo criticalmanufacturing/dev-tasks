@@ -47,16 +47,13 @@ module.exports = function (gulpWrapper, ctx) {
 					/**
 					 * We have 2 approaches to do links
 					 * First try to validate for the direct link and link it.
-					 * If it doesn't exist, try to link to the webApp folder (customization).
+					 * If it doesn't exist, try to link to a folder inside the package folder with the same name as the dependency
 					 * In both scenarios, we should try to link to the target folder, not to another link.
 					 */
 					let internalLink = pluginPath.join(packageFolder, packageObj.cmfLinkDependencies[dependencyName].split("file:").pop());
-					let webAppLink = pluginPath.join(packageFolder, `../../../apps/${ctx.packagePrefix}.web/${ctx.libsFolder}/${package.name}`);
 
 					if (pathExistsAndIsNotLink(internalLink)) { // Link to the dependency directly
 						package.path = internalLink;
-					} else if (ctx.type !== "webApp" && pathExistsAndIsNotLink(webAppLink)) { // avoid to link to itself in the webApp
-						package.path = webAppLink;
 					} else if (pathExistsAndIsNotLink(pluginPath.join(packageFolder, `../${package.name}`))) {
 						package.path = pluginPath.join(packageFolder, `../${package.name}`);
 					}
