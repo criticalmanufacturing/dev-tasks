@@ -251,8 +251,8 @@ module.exports = function (gulpWrapper, ctx) {
             gulp.src(ctx.baseDir + ctx.sourceFolder + '/' + folder + '/**/*.ts', { read: false }),
             {
                 relative: true,
-                starttag: folder + ": [",                
-                endtag: "]",                
+                starttag: "// inject:" + folder,                
+                endtag: "// endinject:" + folder,               
                 transform: function (filepath, file, i, length) {
 
                     var match = folderPathRegExp.exec(filepath);
@@ -508,13 +508,13 @@ module.exports = function (gulpWrapper, ctx) {
             const pjson = require(ctx.baseDir + "package.json");
 
             gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
-            .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
             .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
             .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
             .pipe(replaceModuleMetadata(ctx, widgetPathRegExp, "widgets", false))
 			.pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
             .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converters", false))
             .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))     
+            .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
             .pipe(pluginReplace({
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
