@@ -419,7 +419,7 @@ module.exports = function (gulpWrapper, ctx) {
                                 promiseArray.push(new Promise(function (resolve, reject) {   
                                 
                                     gulp.src([ctx.baseDir + '../' + ctx.packageName + "-" + language + "-index.ts"], { cwd: ctx.baseDir })                        
-                                    .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
+                                    .pipe(tsProject()).on('error', function (err) { cb(err); }).js
                                     .pipe(pluginReplace({
                                         patterns: [                                                                        
                                             // We need to remove the index entry, which is the last one in the file
@@ -514,7 +514,7 @@ module.exports = function (gulpWrapper, ctx) {
 			.pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
             .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converters", false))
             .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))     
-            .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
+            .pipe(tsProject()).on('error', function (err) { cb(err); }).js
             .pipe(pluginReplace({
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
