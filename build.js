@@ -410,6 +410,10 @@ module.exports = function (gulpWrapper, ctx) {
                             i18n.supportedCultures.forEach(function (language) {                    
                                 language = setFinalLanguage(language);                        
                                 tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
+                                    // Remove explicitly declared typings.
+                                    // From TS version 3.2.0 onwards, the compiler complained about it
+                                    // For metadata and i18n
+                                    "types": undefined,
                                     "typescript": require("typescript"),
                                     "out": "main." + finalLanguage + ".bundle.js"
                                 });
@@ -419,7 +423,7 @@ module.exports = function (gulpWrapper, ctx) {
                                 promiseArray.push(new Promise(function (resolve, reject) {   
                                 
                                     gulp.src([ctx.baseDir + '../' + ctx.packageName + "-" + language + "-index.ts"], { cwd: ctx.baseDir })                        
-                                    .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
+                                    .pipe(tsProject()).on('error', function (err) { cb(err); }).js
                                     .pipe(pluginReplace({
                                         patterns: [                                                                        
                                             // We need to remove the index entry, which is the last one in the file
@@ -498,6 +502,10 @@ module.exports = function (gulpWrapper, ctx) {
         return new Promise(function (resolve, reject) {   
             // We will keep the module anonymous as it is fetched by the app by the module loader and this way the file can be used for both DEV + PROD :-)
             var tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
+                // Remove explicitly declared typings.
+                // From TS version 3.2.0 onwards, the compiler complained about it
+                // For metadata and i18n
+                "types": undefined,
                 "typescript": require("typescript") ,
                 outFile: ctx.packageName + ".metadata.js"                      
             });
@@ -514,7 +522,7 @@ module.exports = function (gulpWrapper, ctx) {
 			.pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
             .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converters", false))
             .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))     
-            .pipe(pluginTypescript(tsProject)).on('error', function (err) { cb(err); }).js
+            .pipe(tsProject()).on('error', function (err) { cb(err); }).js
             .pipe(pluginReplace({
                  // update path for i18n
                 patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
