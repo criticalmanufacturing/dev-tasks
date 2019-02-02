@@ -410,6 +410,10 @@ module.exports = function (gulpWrapper, ctx) {
                             i18n.supportedCultures.forEach(function (language) {                    
                                 language = setFinalLanguage(language);                        
                                 tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
+                                    // Remove explicitly declared typings.
+                                    // From TS version 3.2.0 onwards, the compiler complained about it
+                                    // For metadata and i18n
+                                    "types": undefined,
                                     "typescript": require("typescript"),
                                     "out": "main." + finalLanguage + ".bundle.js"
                                 });
@@ -498,6 +502,10 @@ module.exports = function (gulpWrapper, ctx) {
         return new Promise(function (resolve, reject) {   
             // We will keep the module anonymous as it is fetched by the app by the module loader and this way the file can be used for both DEV + PROD :-)
             var tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
+                // Remove explicitly declared typings.
+                // From TS version 3.2.0 onwards, the compiler complained about it
+                // For metadata and i18n
+                "types": undefined,
                 "typescript": require("typescript") ,
                 outFile: ctx.packageName + ".metadata.js"                      
             });
