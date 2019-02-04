@@ -1,6 +1,3 @@
-var pluginTypescript = require('gulp-typescript');
-var pluginConcat = require('gulp-concat');
-var gulpUtil = require('gulp-util');
 var pluginWebServer = require('gulp-webserver');
 var pluginYargs = require('yargs').argv;
 var pluginDel = require('del');
