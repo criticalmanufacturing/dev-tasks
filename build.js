@@ -580,7 +580,8 @@ module.exports = function (gulpWrapper, ctx) {
                     })
                 )
                 .pipe(pluginLess({
-                    relativeUrls: true
+                    relativeUrls: true,
+                    javascriptEnabled: true
                 })).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
                     browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
