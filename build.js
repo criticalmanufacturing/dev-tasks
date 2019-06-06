@@ -1,6 +1,5 @@
 var path = require('path');
 var util = require('util');
-var ncp = require('ncp').ncp;
 var fs = require("fs");
 var glob = require("glob");
  
@@ -15,7 +14,6 @@ var pluginShell = require('gulp-shell');
 var pluginRename = require('gulp-rename');
 var pluginCallback = require("gulp-callback");
 var pluginYargs = require('yargs').argv;
-var pluginConcat = require('gulp-concat');
 var pluginAutoPrefixer = require('gulp-autoprefixer');
 var pluginMinify = require('gulp-minify');
 var spawn = require('child_process').spawn;
@@ -564,7 +562,8 @@ module.exports = function (gulpWrapper, ctx) {
                     })
                 )
                 .pipe(pluginLess({
-                    relativeUrls: true
+                    relativeUrls: true,
+                    javascriptEnabled: true
                 })).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
                     browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
