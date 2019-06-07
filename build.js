@@ -541,10 +541,11 @@ module.exports = function (gulpWrapper, ctx) {
                 ctx.cssAditionalEntryPoints.map(function (entryPoint) {
                     gulp.src(ctx.baseDir + ctx.sourceFolder + entryPoint)
                         .pipe(pluginLess({
-                            relativeUrls: true
+                            relativeUrls: true,
+                            javascriptEnabled: true
                         }))
                         .pipe(pluginAutoPrefixer({
-                            browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
+                            browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                         }))
                         .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
                 });
@@ -566,7 +567,7 @@ module.exports = function (gulpWrapper, ctx) {
                     javascriptEnabled: true
                 })).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
-                    browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
+                    browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
                 .pipe(pluginRename(ctx.packageName + '.css'))
                 .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
@@ -574,7 +575,7 @@ module.exports = function (gulpWrapper, ctx) {
             return gulp.src(ctx.baseDir + ctx.sourceFolder + '**/*.less')
                 .pipe(pluginLess()).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
-                    browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
+                    browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
                 .pipe(gulp.dest(ctx.baseDir + "src"));
         }

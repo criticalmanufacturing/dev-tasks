@@ -5,8 +5,12 @@ var fs = require("fs"),
 	pluginExecuteSync = require("child_process").execSync,
 	pluginfsExtra = require("fs-extra"),
 	pluginPath = require('path'),
-	pluginYargs = require('yargs').argv,
+	pluginYargs = require('yargs'),
 	gulpUtil = require("gulp-util");
+
+// Disable --version parse for Yargs so that we can use --version for our own purposes.
+pluginYargs.version(false);
+pluginYargs = pluginYargs.argv;
 
 // List of packages that are allowed to be linked outside the project
 const EXTERNAL_LINK_IGNORE_LIST = [];
