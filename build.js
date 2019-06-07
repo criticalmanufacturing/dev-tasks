@@ -536,49 +536,50 @@ module.exports = function (gulpWrapper, ctx) {
 
     gulp.task("__build-less", function (callback) {
 
-         if (ctx.cssBundle) {
-            if (ctx.cssAditionalEntryPoints && Array.isArray(ctx.cssAditionalEntryPoints)) {
-                ctx.cssAditionalEntryPoints.map(function (entryPoint) {
-                    gulp.src(ctx.baseDir + ctx.sourceFolder + entryPoint)
-                        .pipe(pluginLess({
-                            relativeUrls: true
-                        }))
-                        .pipe(pluginAutoPrefixer({
-                            browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
-                        }))
-                        .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
-                });
-            }
-            return gulp.src(ctx.baseDir + ctx.sourceFolder + ctx.packageName + '.less')
-                .pipe(
-                pluginInject(
-                    gulp.src(['**/*.less', '!' + ctx.packageName + '.less'], { read: false, cwd: ctx.baseDir + ctx.sourceFolder }),
-                    {
-                        starttag: '/* inject:imports */',
-                        endtag: '/* endinject */',
-                        transform: function (filepath) {
-                            return '@import ".' + filepath + '";';
-                        }
-                    })
-                )
-                .pipe(pluginLess({
-                    relativeUrls: true,
-                    javascriptEnabled: true
-                })).on('error', function (err) { callback(err) })
-                .pipe(pluginAutoPrefixer({
-                    browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
-                })).on('error', function (err) { callback(err) })
-                .pipe(pluginRename(ctx.packageName + '.css'))
-                .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
-        } else {
-            return gulp.src(ctx.baseDir + ctx.sourceFolder + '**/*.less')
-                .pipe(pluginLess()).on('error', function (err) { callback(err) })
-                .pipe(pluginAutoPrefixer({
-                    browsers: ['last 2 versions']    // Could be tweaked according to the browser requisites
-                })).on('error', function (err) { callback(err) })
-                .pipe(gulp.dest(ctx.baseDir + "src"));
-        }
-    });
+        if (ctx.cssBundle) {
+           if (ctx.cssAditionalEntryPoints && Array.isArray(ctx.cssAditionalEntryPoints)) {
+               ctx.cssAditionalEntryPoints.map(function (entryPoint) {
+                   gulp.src(ctx.baseDir + ctx.sourceFolder + entryPoint)
+                       .pipe(pluginLess({
+                           relativeUrls: true,
+                           javascriptEnabled: true
+                       }))
+                       .pipe(pluginAutoPrefixer({
+                           browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
+                       }))
+                       .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
+               });
+           }
+           return gulp.src(ctx.baseDir + ctx.sourceFolder + ctx.packageName + '.less')
+               .pipe(
+               pluginInject(
+                   gulp.src(['**/*.less', '!' + ctx.packageName + '.less'], { read: false, cwd: ctx.baseDir + ctx.sourceFolder }),
+                   {
+                       starttag: '/* inject:imports */',
+                       endtag: '/* endinject */',
+                       transform: function (filepath) {
+                           return '@import ".' + filepath + '";';
+                       }
+                   })
+               )
+               .pipe(pluginLess({
+                   relativeUrls: true,
+                   javascriptEnabled: true
+               })).on('error', function (err) { callback(err) })
+               .pipe(pluginAutoPrefixer({
+                   browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
+               })).on('error', function (err) { callback(err) })
+               .pipe(pluginRename(ctx.packageName + '.css'))
+               .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + "src"));
+       } else {
+           return gulp.src(ctx.baseDir + ctx.sourceFolder + '**/*.less')
+               .pipe(pluginLess()).on('error', function (err) { callback(err) })
+               .pipe(pluginAutoPrefixer({
+                   browsers: ['last 2 version']    // Could be tweaked according to the browser requisites
+               })).on('error', function (err) { callback(err) })
+               .pipe(gulp.dest(ctx.baseDir + "src"));
+       }
+   });
 
         /**
      * Package linting.
