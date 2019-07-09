@@ -116,7 +116,19 @@ module.exports = function (gulpWrapper, ctx) {
                 // get component path. Example: CoreHTML/src/packages/cmf.core.controls/src/components/combobox/combobox
                 // go up in tree to remove last 'folder'. Result: CoreHTML/src/packages/cmf.core.controls/src/components/combobox
                 // add file path
-                var relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
+                var relativeFilePath;
+                if(pluginYargs.parallel !== false) {
+                    var packageRegex = new RegExp(ctx.packagePrefix + "[^/]*", "g")
+                    var templateURL = entry.split('"')[1].match(packageRegex);
+                    // var pathRegex = /\//g;
+                    // var baseDir = "C:/Product/dev/CoreHTML/src/packages/" + templateURL[0];
+                    //"C:/Product/dev/CoreHTML
+                    var baseDir = ctx.__repositoryRoot + "\\src\\packages\\" + templateURL[0]
+                    relativeFilePath = path.join(baseDir, entry.split('"')[1].split(templateURL[0])[1], "..", filePath)
+                } else {
+                    relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
+                }
+
                 // Verify if file exists
                 if (fs.existsSync(relativeFilePath) && fs.statSync(relativeFilePath).isFile()) {
                     // relative path exists - we can get its content
