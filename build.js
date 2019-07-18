@@ -102,10 +102,10 @@ module.exports = function (gulpWrapper, ctx) {
         return patterns;
     }
 
-    var bundleHTMLAndCSS = function () {
+    var bundleHTMLAndCSS = function (ctx) {
 
         // function to get the CSS or HTML files
-        getFileContent = function (entry, filePath) {
+        getFileContent = function (entry, filePath, ctx) {
             // verify if file exists
             if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
                 // absolute path - we can get its content
@@ -116,19 +116,7 @@ module.exports = function (gulpWrapper, ctx) {
                 // get component path. Example: CoreHTML/src/packages/cmf.core.controls/src/components/combobox/combobox
                 // go up in tree to remove last 'folder'. Result: CoreHTML/src/packages/cmf.core.controls/src/components/combobox
                 // add file path
-                var relativeFilePath;
-                if(pluginYargs.parallel !== false) {
-                    var packageRegex = new RegExp(ctx.packagePrefix + "[^/]*", "g")
-                    var templateURL = entry.split('"')[1].match(packageRegex);
-                    // var pathRegex = /\//g;
-                    // var baseDir = "C:/Product/dev/CoreHTML/src/packages/" + templateURL[0];
-                    //"C:/Product/dev/CoreHTML
-                    var baseDir = ctx.__repositoryRoot + "\\src\\packages\\" + templateURL[0]
-                    relativeFilePath = path.join(baseDir, entry.split('"')[1].split(templateURL[0])[1], "..", filePath)
-                } else {
-                    relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
-                }
-
+                var relativeFilePath = path.join(ctx.baseDir, entry.split('"')[1].split(ctx.packageName)[1], "..", filePath);
                 // Verify if file exists
                 if (fs.existsSync(relativeFilePath) && fs.statSync(relativeFilePath).isFile()) {
                     // relative path exists - we can get its content
@@ -152,7 +140,7 @@ module.exports = function (gulpWrapper, ctx) {
                     var templateURL = mappedEntry.input.match(templateUrlRegex);
                     if (templateURL != null) { // TemplateUrl found
                         var templatePath = templateURL[0].replace(/templateUrl:.?['|"]/g, '');
-                        var fileContent = getFileContent(entry, templatePath.slice(0, -1)); // remove last quote character and get the file content
+                        var fileContent = getFileContent(entry, templatePath.slice(0, -1), ctx); // remove last quote character and get the file content
                         if (fileContent != null) {
                             fileContent = fileContent.toString().trim().replace(/\r?\n|\r/g, ''); // trim and remove line break characters - both are needed
                             // minify HTML content
@@ -176,7 +164,7 @@ module.exports = function (gulpWrapper, ctx) {
                         // for each style...
                         for (let index = 0; index < stylesPathsArray.length; index++) {
                             const singleStyle = stylesPathsArray[index].trim().substring(1); // trim and remove first character (quote character)
-                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1)); // remove last quote character and get file content
+                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1), ctx); // remove last quote character and get file content
                             if (fileContent != null) {
                                 // file found - minify content and append to finalCSS
                                 var minifiedCSS = new pluginCleanCSS({}).minify(fileContent);
@@ -355,9 +343,9 @@ module.exports = function (gulpWrapper, ctx) {
             tsConfigName = tsConfigName || null;
             // gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies
             gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
-                .pipe(pluginCallback(function () {                                    
+                .pipe(pluginCallback(function () {                  
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
-                    .pipe(pluginReplace(bundleHTMLAndCSS()))
+                    .pipe(pluginReplace(bundleHTMLAndCSS(ctx)))
                     // >>>>>>>>>>>>>>>>>>>>>>>>> REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
