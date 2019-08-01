@@ -600,7 +600,7 @@ module.exports = function (gulpWrapper, ctx) {
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
-                fix: pluginYargs.fix ? true : false,
+                fix: pluginYargs.fix ? true : false
             }))
             .pipe(pluginTslint.report({
                 summarizeFailureOutput: true,
