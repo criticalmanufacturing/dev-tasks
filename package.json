@@ -34,7 +34,8 @@
     "tslint": "~5.12.0",
     "typescript": "3.2.4",
     "uuid": "~3.3.2",
-    "yargs": "~12.0.5"
+    "yargs": "~12.0.5",
+    "tslint-no-circular-imports": "^0.7.0"
   },
   "devDependencies": {},
   "scripts": {},
