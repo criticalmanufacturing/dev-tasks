@@ -601,12 +601,6 @@ module.exports = function (gulpWrapper, ctx) {
             .pipe(pluginTslint({
                 formatter: "stylish",
                 fix: pluginYargs.fix ? true : false,
-                program: TSLint.createProgram(`${ctx.baseDir}/tsconfig.json`, ctx.baseDir),
-                configuration: {
-                    rules: {
-                        "no-circular-imports": false
-                    }
-                  }
             }))
             .pipe(pluginTslint.report({
                 summarizeFailureOutput: true,
@@ -614,6 +608,48 @@ module.exports = function (gulpWrapper, ctx) {
             }));
         } else {
             pluginUtil.log(pluginUtil.colors.yellow("No tslint.json file found. Skipping task."));
+            callback();
+        }        
+    });
+
+    /**
+     * Package CheckCircularImports
+     */
+    gulp.task("check-circular-imports", (callback) => {
+        // First check if there is a tslint.json file, otherwise, skip the whole linting.        
+        if (fs.existsSync(`${ctx.__repositoryRoot}/tslint.json`) &&
+            fs.existsSync(`${ctx.baseDir}/tsconfig.json`)) {            
+            let packageExclusionList = [];
+            if (ctx.linterExclusions instanceof Array && ctx.linterExclusions.length > 0) {
+                packageExclusionList = ctx.linterExclusions;
+            }
+
+            // create our own linter with its configuration
+            return gulp.src([                
+                `${ctx.baseDir}src/**/*.ts`, 
+                `!${ctx.baseDir}src/**/*.d.ts`, 
+                `!${ctx.baseDir}src/**/i18n/*.ts`,
+                `!${ctx.baseDir}src/**/style/fonts/**/metadata.ts`,
+            ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
+            .pipe(pluginTslint({
+                configuration: {
+                    rulesDirectory: [
+                        `${ctx.__repositoryRoot}/node_modules/tslint-no-circular-imports`],
+                    rules: new Map([['no-circular-imports', {
+                        defaultRuleSeverity: "warning",
+                        ruleSeverity: "warning"
+                    }]])
+                },
+                program: TSLint.Linter.createProgram(`${ctx.baseDir}/tsconfig.json`, ctx.baseDir),
+                formatter: "stylish",
+                fix: false,
+            }))
+            .pipe(pluginTslint.report({
+                summarizeFailureOutput: true,
+                allowWarnings: true
+            }));
+        } else {
+            pluginUtil.log(pluginUtil.colors.yellow("No tslint.json or tsconfig.json file found. Skipping task."));
             callback();
         }        
     });
