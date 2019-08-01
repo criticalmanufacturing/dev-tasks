@@ -24,6 +24,7 @@ var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').g
 var pluginTslint = require("gulp-tslint");
 var pluginCleanCSS = require('clean-css');
 var pluginHTMLMinify = require('html-minifier').minify;
+var TSLint = require("tslint");
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -599,7 +600,13 @@ module.exports = function (gulpWrapper, ctx) {
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 formatter: "stylish",
-                fix: pluginYargs.fix ? true : false
+                fix: pluginYargs.fix ? true : false,
+                program: TSLint.createProgram(`${ctx.baseDir}/tsconfig.json`, ctx.baseDir),
+                configuration: {
+                    rules: {
+                        "no-circular-imports": false
+                    }
+                  }
             }))
             .pipe(pluginTslint.report({
                 summarizeFailureOutput: true,
