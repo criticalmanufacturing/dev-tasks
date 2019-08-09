@@ -8,16 +8,20 @@ var fsExtra = require("fs-extra");
 var nodePath = require("path");
 var uuid = require('uuid');
 var utils = require('./utils.js');
+var concat = require('gulp-concat');
+var sysBuilder = require('systemjs-builder');
+var minify = require('gulp-minify');
+var cleanCss = require('gulp-clean-css');
 
 module.exports = function (gulpWrapper, ctx) {
-    
+
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
     var typescriptCompilerPath = nodePath.join(ctx.__repositoryRoot, 'node_modules/typescript/bin/tsc');
     var getDirectories = function (path, startsWith) {
         try {
             var directory = fs.readdirSync(path);
-            return directory.filter(function (file) {                
+            return directory.filter(function (file) {
                 return fs.statSync(path + '/' + file).isDirectory() && file.startsWith(startsWith);
             });
 
@@ -28,12 +32,109 @@ module.exports = function (gulpWrapper, ctx) {
     function isFile(path) {
         var result = true;
         try {
-            fs.accessSync(path, fs.F_OK);                       
+            fs.accessSync(path, fs.F_OK);
         } catch (e) {
             result = false;
         }
         return result;
     }
+
+    /**
+     * Create bundles as was configured in gulp file
+     */
+    gulp.task('bundle-app', function (cb) {
+        
+        const promises = [];
+        if (ctx.bundleBuilderOn && ctx.bundleBuilderOn == true &&
+            ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
+            && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
+            var builder = new sysBuilder('', ctx.baseDir + ctx.bundleBuilderInitialConfig);
+            ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
+                var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
+                if (bundleElement.bundleConfigs && bundleElement.bundleConfigs.length > 0) {
+                    // Concatenate files expressions
+                    var currentExpressions = [];
+                    var paths = [];
+                    bundleElement.bundleConfigs.forEach(file => {
+                        var buConfig = require(ctx.baseDir + file);
+                        if (buConfig && buConfig.bundlesConfiguration && buConfig.bundlesConfiguration.length > 0) {
+                            var bundleConfig = buConfig.bundlesConfiguration.find(obj => obj.bundleName == bundleElement.bundleName);
+                            if (bundleConfig && bundleConfig.bundleExpressions && bundleConfig.bundleExpressions.length > 0) {
+                                currentExpressions.push(bundleConfig.bundleExpressions);
+                            }
+                            if (bundleConfig && bundleConfig.bundlePaths && bundleConfig.bundlePaths.length > 0) {
+                                paths = paths.concat(bundleConfig.bundlePaths)
+                            }
+                        }
+                    });
+                    // JS Files
+                    if (fileExtension && fileExtension.endsWith('js')) {
+                        if (currentExpressions && currentExpressions.length > 0) {
+                            console.log(currentExpressions.join(' + '));
+                            builder.bundle(currentExpressions.join(' + ').toString(), `node_modules/bundles/${fileExtension}/${bundleElement.bundleName}`
+                                , { minify: bundleElement.bundleMinify, sourceMaps: false });
+                        }
+                        if (paths && paths.length > 0) {
+                            console.log(paths);
+                            if (bundleElement.bundleMinify) {
+                                gulp.src(paths)
+                                    .pipe(concat(bundleElement.bundleName))
+                                    .pipe(minify({
+                                        ext: {
+                                            min: '.js'
+                                        },
+                                        noSource: true
+                                    }))
+                                    .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                            }
+                            else {
+                                gulp.src(paths)
+                                    .pipe(concat(bundleElement.bundleName))
+                                    .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                            }
+                        }
+                    }
+                    // CSS Files
+                    if (fileExtension && fileExtension.endsWith('css')) {
+                        if (bundleElement.bundleMinify) {
+                            gulp.src(paths)
+                                .pipe(concat(bundleElement.bundleName))
+                                .pipe(cleanCss({ inline: ['none'], level: 2 }))
+                                .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                        }
+                        else {
+                            gulp.src(paths)
+                                .pipe(concat(bundleElement.bundleName))
+                                .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Copy Assets
+        if (ctx.bundleBuilderOn &&
+            ctx.bundleBuilderAssetsConfig && ctx.bundleBuilderAssetsConfig.length > 0) {
+
+            ctx.bundleBuilderAssetsConfig.forEach(bundleElement => {
+                if (bundleElement.bundleConfigs && bundleElement.bundleConfigs.length > 0) {
+                    // Collect paths
+                    var paths = [];
+                    bundleElement.bundleConfigs.forEach(file => {
+                        var buConfig = require(ctx.baseDir + file);
+                        if (buConfig && buConfig.bundlesConfiguration && buConfig.bundlesConfiguration.length > 0) {
+                            var bundleConfig = buConfig.bundlesConfiguration.find(obj => obj.bundleAssetsTask == bundleElement.bundleAssetsTask);
+                            if (bundleConfig && bundleConfig.bundlePaths && bundleConfig.bundlePaths.length > 0) {
+                                paths = paths.concat(bundleConfig.bundlePaths)
+                            }
+                        }
+                    });
+                    return gulp.src(paths)
+                        .pipe(gulp.dest(bundleElement.bundleDestPath));
+                }
+            });
+        }
+    });
 
     /**
      * Compile typescript files
@@ -42,10 +143,10 @@ module.exports = function (gulpWrapper, ctx) {
         return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
     });
 
-    gulp.task('deploy', function(cb){
+    gulp.task('deploy', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
 
-        if(pluginYargs.moduleName){
+        if (pluginYargs.moduleName) {
             deployPath += "\\" + pluginYargs.moduleName;
         }
 
@@ -54,11 +155,11 @@ module.exports = function (gulpWrapper, ctx) {
         // We need to update the app's package.json to clear all cmfLinkDependencies as in customization projects we wouldn't need these links
         var packageJSONObject = fsExtra.readJsonSync(ctx.baseDir + "package.json");
         packageJSONObject.cmfLinkDependencies = {};
-        fsExtra.writeJsonSync(ctx.baseDir + "package.json", packageJSONObject);    
-        
-        if (!fs.existsSync(deployPath)){
+        fsExtra.writeJsonSync(ctx.baseDir + "package.json", packageJSONObject);
+
+        if (!fs.existsSync(deployPath)) {
             fs.mkdirSync(deployPath);
-        }else{
+        } else {
             console.log("Deleting path " + deployPath + "\\**");
             pluginDel.sync([deployPath + "\\**", "!" + deployPath], { force: true });
         }
@@ -69,25 +170,25 @@ module.exports = function (gulpWrapper, ctx) {
                 + tempFileName +
                 //' -x!node_modules\\**\\node_modules' +
                 ' -ir@"' + __dirname + '\\deploy\\web.deploy.include.txt"' +
-                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"' 
+                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"'
                 , { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
-                .pipe(  
-                   pluginShell(
-                        "\"C:\\Program Files\\7-Zip\\7z\" x "
-                        + tempFileName +
-                        //' -x!node_modules\\**\\node_modules' +
-                        ' -o' + deployPath + " -y"
-                        , { cwd: ctx.baseDir })
-                ).pipe(pluginCallback(function () {     
-                  pluginDel([tempFileName], cb)  
-                }));
+            .pipe(
+                pluginShell(
+                    "\"C:\\Program Files\\7-Zip\\7z\" x "
+                    + tempFileName +
+                    //' -x!node_modules\\**\\node_modules' +
+                    ' -o' + deployPath + " -y"
+                    , { cwd: ctx.baseDir })
+            ).pipe(pluginCallback(function () {
+                pluginDel([tempFileName], cb)
+            }));
     });
 
-    gulp.task('deploy-setup', function(cb){
+    gulp.task('deploy-setup', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
         var tokensFile = pluginYargs.appFileName ? pluginYargs.appFileName : "config.setup.json";
 
-        if(pluginYargs.moduleName){
+        if (pluginYargs.moduleName) {
             deployPath += "\\" + pluginYargs.moduleName + ".zip";
         }
 
@@ -100,9 +201,9 @@ module.exports = function (gulpWrapper, ctx) {
                 "\"C:\\Program Files\\7-Zip\\7z\" a "
                 + deployPath +
                 ' -ir@"' + __dirname + '\\deploy\\web.deploy.include.txt"' +
-                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"' 
+                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"'
                 , { cwd: ctx.baseDir }));
-                
+
     });
 
     /**
@@ -142,7 +243,7 @@ module.exports = function (gulpWrapper, ctx) {
             res.write(content);
             res.end();
         }
-                
+
         // We set the Core solution as the root for the app which already has the linkage 
         // to all the "src" module folders         
         var rootDir = ctx.baseDir;
@@ -152,7 +253,7 @@ module.exports = function (gulpWrapper, ctx) {
                 port: pluginYargs.port,
                 livereload: false,
                 directoryListing: false,
-                open: pluginYargs.open ? `http://localhost:${pluginYargs.port}/` : false,                
+                open: pluginYargs.open ? `http://localhost:${pluginYargs.port}/` : false,
                 middleware: function (req, res, next) {
                     var url = req.url.split("?").shift();
 
@@ -169,23 +270,23 @@ module.exports = function (gulpWrapper, ctx) {
                     } else if (req.method == 'GET') {
 
                         // Check if the static resource exists and provide a 404 when it doesn't. We need to strip any query parameter, like the CMFCacheId
-                        if (!isFile(ctx.baseDir + req.url.split("?").shift())) {                                                        
-                            res.statusCode = 404;                            
+                        if (!isFile(ctx.baseDir + req.url.split("?").shift())) {
+                            res.statusCode = 404;
                             res.write("No static resource found.");
                             return res.end();
                         } else if (url.endsWith("metadata.js")) {
-                        
+
                             var urlArray = url.split("/");
                             if (urlArray[urlArray.length - 1] !== "metadata.js") {
                                 // Let's check which module we are searching
                                 var metadataFileName = urlArray[urlArray.length - 1];
                                 var moduleName = metadataFileName.replace(".metadata.js", "");
                                 // Get the proper metadata file
-                                var metadataContent = fs.readFileSync(ctx.baseDir + "node_modules/" + moduleName + "/src/" + metadataFileName).toString();                                             
+                                var metadataContent = fs.readFileSync(ctx.baseDir + "node_modules/" + moduleName + "/src/" + metadataFileName).toString();
                                 var bundlerFoldersObj = { "components": [], "directives": [], "pipes": [], "widgets": [], "dataSources": [], "converters": [] };
                                 for (var bundleName in bundlerFoldersObj) {
                                     // There has to be a better way
-                                    metadataContent = metadataContent.replace(new RegExp(bundleName + "\: \[[\\s\\S]*?\],"), function (match) {                                    
+                                    metadataContent = metadataContent.replace(new RegExp(bundleName + "\: \[[\\s\\S]*?\],"), function (match) {
                                         bundlerFoldersObj[bundleName] = utils.fs.getDirectories(ctx.baseDir + "node_modules/" + moduleName + "/src/" + bundleName);
                                         return bundleName + ": [" +
                                             bundlerFoldersObj[bundleName].map(function (entry) { return "'" + entry + "'" }) + "],";
@@ -194,26 +295,26 @@ module.exports = function (gulpWrapper, ctx) {
                                 // After all bundle folders are processed, then we can move to the i18n resources which may be available in all bundle folders
                                 var partiali18nContent = "";
                                 var isFirst = true;
-                                for (var bundleName in bundlerFoldersObj) {                                
-                                    bundlerFoldersObj[bundleName].forEach(function(folder) {
+                                for (var bundleName in bundlerFoldersObj) {
+                                    bundlerFoldersObj[bundleName].forEach(function (folder) {
                                         var i18nFolder = bundleName + "/" + folder + "/i18n/";
                                         if (utils.fs.isDirectory(ctx.baseDir + "node_modules/" + moduleName + "/src/" + i18nFolder)) {
                                             partiali18nContent += ((isFirst) ? "" : ",") + "'" + i18nFolder + folder + ".default'";
                                             isFirst = false;
-                                        }                                    
-                                    });                                
-                                };                            
+                                        }
+                                    });
+                                };
                                 if (partiali18nContent !== "") {
-                                    metadataContent = metadataContent.replace(new RegExp("i18n\: \[[\\s\\S]*?\],"), function (match) {                                                                    
+                                    metadataContent = metadataContent.replace(new RegExp("i18n\: \[[\\s\\S]*?\],"), function (match) {
                                         return "i18n: [" + partiali18nContent + "],";
                                     });
                                 }
                                 // Also de metadata file normally asks for the module's main i18n resource by using the "./i18n/main.default". We need to replace this dependency with "cmf.core.shell/src/i18n/i18n"
                                 metadataContent = metadataContent.replace("./i18n/main.default", moduleName + "/src/i18n/main.default");
-                                writeOK(res, metadataContent);  
+                                writeOK(res, metadataContent);
                             } else {
                                 next();
-                            }                         
+                            }
                         } else {
                             next();
                         }
@@ -225,7 +326,7 @@ module.exports = function (gulpWrapper, ctx) {
             }));
     });
 
-    
+
 
     gulp.task('start-bundle-mode', function () {
 
