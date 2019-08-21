@@ -16,8 +16,6 @@ var pluginCallback = require("gulp-callback");
 var pluginYargs = require('yargs').argv;
 var pluginAutoPrefixer = require('gulp-autoprefixer');
 var pluginMinify = require('gulp-minify');
-var cssmin = require('gulp-clean-css');
-var through = require('through2');
 var spawn = require('child_process').spawn;
 var pluginIf = require('gulp-if');
 var pluginWalker = require('async-walker');
@@ -26,6 +24,8 @@ var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').g
 var pluginTslint = require("gulp-tslint");
 var pluginCleanCSS = require('clean-css');
 var pluginHTMLMinify = require('html-minifier').minify;
+var TSLint = require("tslint");
+var cssmin = require('gulp-clean-css');
 var concat = require('gulp-concat');
 
 //module specific plugins
@@ -44,7 +44,7 @@ var excludeNodeModulesRegExp = { match: new RegExp("System\\.register\\(\"node_m
 var excludeNodeModulesDepRegExp = { match: new RegExp("node_modules\/", 'g'), replacement: "" };
 
 var i18n = {
-    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW"],
+    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES"],
     startupCulture: "en-US",
     startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
 }
@@ -105,10 +105,10 @@ module.exports = function (gulpWrapper, ctx) {
         return patterns;
     }
 
-    var bundleHTMLAndCSS = function () {
+    var bundleHTMLAndCSS = function (ctx) {
 
         // function to get the CSS or HTML files
-        getFileContent = function (entry, filePath) {
+        getFileContent = function (entry, filePath, ctx) {
             // verify if file exists
             if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
                 // absolute path - we can get its content
@@ -143,7 +143,7 @@ module.exports = function (gulpWrapper, ctx) {
                     var templateURL = mappedEntry.input.match(templateUrlRegex);
                     if (templateURL != null) { // TemplateUrl found
                         var templatePath = templateURL[0].replace(/templateUrl:.?['|"]/g, '');
-                        var fileContent = getFileContent(entry, templatePath.slice(0, -1)); // remove last quote character and get the file content
+                        var fileContent = getFileContent(entry, templatePath.slice(0, -1), ctx); // remove last quote character and get the file content
                         if (fileContent != null) {
                             fileContent = fileContent.toString().trim().replace(/\r?\n|\r/g, ''); // trim and remove line break characters - both are needed
                             // minify HTML content
@@ -167,10 +167,9 @@ module.exports = function (gulpWrapper, ctx) {
                         // for each style...
                         for (let index = 0; index < stylesPathsArray.length; index++) {
                             const singleStyle = stylesPathsArray[index].trim().substring(1); // trim and remove first character (quote character)
-                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1)); // remove last quote character and get file content
+                            var fileContent = getFileContent(entry, singleStyle.slice(0, -1), ctx); // remove last quote character and get file content
                             if (fileContent != null) {
                                 // file found - minify content and append to finalCSS
-								
                                 var minifiedCSS = new pluginCleanCSS({}).minify(fileContent);
                                 finalCSS += `"${minifiedCSS.styles.replace(/"/g, "'").replace(/\\/g, "\\\\")}",`;  // replace quotes and slash from file 
                             } else {
@@ -205,23 +204,6 @@ module.exports = function (gulpWrapper, ctx) {
         };
         return patterns;
     };
-
-
-    // gulp.task('bundle-external-js', function () {    
-    //     if(ctx.jsBundle){
-    //     return gulp.src(['**/*.js', '!cmf**/*.js'], { read: true, cwd: ctx.baseDir + 'node_modules/' })
-    //         .pipe(concat('external-bundle.js'))
-    //         .pipe(gulp.dest(ctx.baseDir + 'public/build/js'));
-    //     }
-    //     cb();
-    // });
-     
-    // gulp.task('bundle-external-css', function () {    
-    //     return gulp.src(ctx.baseDir, '/node_modules/**/*.css')
-    //         .pipe(concat('style-bundle.css'))
-    //         .pipe(gulp.dest('public/build/css'));
-    // });
-    
 
     var commonRegexPatterns = [
         { match: new RegExp("cmf.mes.lbos", "gi"), replacement: 'cmf.lbos' },        
@@ -364,9 +346,9 @@ module.exports = function (gulpWrapper, ctx) {
             tsConfigName = tsConfigName || null;
             // gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies
             gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
-                .pipe(pluginCallback(function () {                                    
+                .pipe(pluginCallback(function () {                  
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
-                    .pipe(pluginReplace(bundleHTMLAndCSS()))
+                    .pipe(pluginReplace(bundleHTMLAndCSS(ctx)))
                     // >>>>>>>>>>>>>>>>>>>>>>>>> REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
@@ -568,7 +550,7 @@ module.exports = function (gulpWrapper, ctx) {
                         .pipe(pluginAutoPrefixer({
                             browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                         }))
-						.pipe(cssmin({ inline: ['none'], level: 2 }))
+                        .pipe(cssmin({ inline: ['none'], level: 2 }))
                         .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder));
                 });
             }
@@ -591,28 +573,19 @@ module.exports = function (gulpWrapper, ctx) {
                 .pipe(pluginAutoPrefixer({
                     browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
-				.pipe(cssmin({ inline: ['none'], level: 2 }))
+                .pipe(cssmin({ inline: ['none'], level: 2 }))
                 .pipe(pluginRename(ctx.packageName + '.css'))
                 .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder));
         } else {
-            console.log('oi');
             return gulp.src(ctx.baseDir + ctx.sourceFolder + '**/*.less')
                 .pipe(pluginLess()).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
                     browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
-				.pipe(cssmin({ inline: ['none'], level: 2 }))
-				.pipe(pipeFunction())
+                .pipe(cssmin({ inline: ['none'], level: 2 }))
                 .pipe(gulp.dest(ctx.baseDir + ctx.sourceFolder));
         }
     });
-	
-	var pipeFunction = () => {
-  return through.obj((file, enc, cb) => {
-    console.log(ctx.baseDir);
-    return cb(null, file);
-  });
-}
 
         /**
      * Package linting.
@@ -640,6 +613,48 @@ module.exports = function (gulpWrapper, ctx) {
             }));
         } else {
             pluginUtil.log(pluginUtil.colors.yellow("No tslint.json file found. Skipping task."));
+            callback();
+        }        
+    });
+
+    /**
+     * Package CheckCircularImports
+     */
+    gulp.task("check-circular-imports", (callback) => {
+        // First check if there is a tslint.json file, otherwise, skip the whole linting.        
+        if (fs.existsSync(`${ctx.__repositoryRoot}/tslint.json`) &&
+            fs.existsSync(`${ctx.baseDir}/tsconfig.json`)) {            
+            let packageExclusionList = [];
+            if (ctx.linterExclusions instanceof Array && ctx.linterExclusions.length > 0) {
+                packageExclusionList = ctx.linterExclusions;
+            }
+
+            // create our own linter with its configuration
+            return gulp.src([                
+                `${ctx.baseDir}src/**/*.ts`, 
+                `!${ctx.baseDir}src/**/*.d.ts`, 
+                `!${ctx.baseDir}src/**/i18n/*.ts`,
+                `!${ctx.baseDir}src/**/style/fonts/**/metadata.ts`,
+            ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
+            .pipe(pluginTslint({
+                configuration: {
+                    rulesDirectory: [
+                        `${ctx.__repositoryRoot}/node_modules/tslint-no-circular-imports`],
+                    rules: new Map([['no-circular-imports', {
+                        defaultRuleSeverity: "warning",
+                        ruleSeverity: "warning"
+                    }]])
+                },
+                program: TSLint.Linter.createProgram(`${ctx.baseDir}/tsconfig.json`, ctx.baseDir),
+                formatter: "stylish",
+                fix: false,
+            }))
+            .pipe(pluginTslint.report({
+                summarizeFailureOutput: true,
+                allowWarnings: true
+            }));
+        } else {
+            pluginUtil.log(pluginUtil.colors.yellow("No tslint.json or tsconfig.json file found. Skipping task."));
             callback();
         }        
     });
@@ -742,7 +757,7 @@ module.exports = function (gulpWrapper, ctx) {
                 '__build-less',                            
                 '__build-and-bundle',
                 '__build-and-bundle-i18n',
-                '__build-and-bundle-metadata'
+                '__build-and-bundle-metadata',		
             ];
             if (ctx.type === "documentation") {
                 tasksToExecute.push("__build-db");

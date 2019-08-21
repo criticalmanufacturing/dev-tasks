@@ -43,7 +43,7 @@ module.exports = function (gulpWrapper, ctx) {
      * Create bundles as was configured in gulp file
      */
     gulp.task('bundle-app', function (cb) {
-        
+
         const promises = [];
         if (ctx.bundleBuilderOn && ctx.bundleBuilderOn == true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
@@ -51,6 +51,7 @@ module.exports = function (gulpWrapper, ctx) {
             var builder = new sysBuilder('', ctx.baseDir + ctx.bundleBuilderInitialConfig);
             ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
                 var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
+                var toMinify = bundleElement.bundleMinify === undefined ? true : bundleElement.bundleMinify;
                 if (bundleElement.bundleConfigs && bundleElement.bundleConfigs.length > 0) {
                     // Concatenate files expressions
                     var currentExpressions = [];
@@ -70,13 +71,12 @@ module.exports = function (gulpWrapper, ctx) {
                     // JS Files
                     if (fileExtension && fileExtension.endsWith('js')) {
                         if (currentExpressions && currentExpressions.length > 0) {
-                            console.log(currentExpressions.join(' + '));
                             builder.bundle(currentExpressions.join(' + ').toString(), `node_modules/bundles/${fileExtension}/${bundleElement.bundleName}`
-                                , { minify: bundleElement.bundleMinify, sourceMaps: false });
+                                , { minify: toMinify, sourceMaps: false });
                         }
                         if (paths && paths.length > 0) {
-                            console.log(paths);
-                            if (bundleElement.bundleMinify) {
+
+                            if (toMinify) {
                                 gulp.src(paths)
                                     .pipe(concat(bundleElement.bundleName))
                                     .pipe(minify({
@@ -96,7 +96,7 @@ module.exports = function (gulpWrapper, ctx) {
                     }
                     // CSS Files
                     if (fileExtension && fileExtension.endsWith('css')) {
-                        if (bundleElement.bundleMinify) {
+                        if (toMinify) {
                             gulp.src(paths)
                                 .pipe(concat(bundleElement.bundleName))
                                 .pipe(cleanCss({ inline: ['none'], level: 2 }))
@@ -111,7 +111,7 @@ module.exports = function (gulpWrapper, ctx) {
                 }
             });
         }
-        
+
         // Copy Assets
         if (ctx.bundleBuilderOn &&
             ctx.bundleBuilderAssetsConfig && ctx.bundleBuilderAssetsConfig.length > 0) {
@@ -140,7 +140,8 @@ module.exports = function (gulpWrapper, ctx) {
      * Compile typescript files
      */
     gulp.task('build', function (cb) {
-        return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
+        gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
+        return pluginRunSequence(['bundle-app'], cb);
     });
 
     gulp.task('deploy', function (cb) {
@@ -222,6 +223,7 @@ module.exports = function (gulpWrapper, ctx) {
         if (pluginYargs.production) {
             pluginYargs.port = ctx.defaultPort + 1;
             pluginRunSequence(['start-bundle-mode'], cb);
+
         } else {
             pluginYargs.port = ctx.defaultPort;
             pluginRunSequence(['start-dev-mode'], cb);
