@@ -44,7 +44,6 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('bundle-app', function (cb) {
 
-        const promises = [];
         if (ctx.bundleBuilderOn && ctx.bundleBuilderOn == true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
             && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
