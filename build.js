@@ -27,6 +27,7 @@ var pluginHTMLMinify = require('html-minifier').minify;
 var TSLint = require("tslint");
 var cssmin = require('gulp-clean-css');
 var concat = require('gulp-concat');
+								   
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -60,8 +61,12 @@ module.exports = function (gulpWrapper, ctx) {
 
     var gulp = gulpWrapper.gulp;
     ctx.baseDir = ctx.baseDir.replace(/\\/g, '/');
-    ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
-
+    
+	if(ctx.deployFolder === '/')
+		ctx.deployFolder = '';
+	else
+		ctx.deployFolder = ctx.deployFolder || ctx.sourceFolder;
+	
     var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
     var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
@@ -550,8 +555,8 @@ module.exports = function (gulpWrapper, ctx) {
                         .pipe(pluginAutoPrefixer({
                             browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                         }))
-                        .pipe(cssmin({ inline: ['none'], level: 2 }))
-                        .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder));
+						.pipe(cssmin({ inline: ['none'], level: 2 }))
+                        .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + ctx.sourceFolder));
                 });
             }
             return gulp.src(ctx.baseDir + ctx.sourceFolder + ctx.packageName + '.less')
@@ -573,17 +578,17 @@ module.exports = function (gulpWrapper, ctx) {
                 .pipe(pluginAutoPrefixer({
                     browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
-                .pipe(cssmin({ inline: ['none'], level: 2 }))
+				.pipe(cssmin({ inline: ['none'], level: 2 }))
                 .pipe(pluginRename(ctx.packageName + '.css'))
-                .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder));
+                .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder + ctx.sourceFolder));
         } else {
             return gulp.src(ctx.baseDir + ctx.sourceFolder + '**/*.less')
                 .pipe(pluginLess()).on('error', function (err) { callback(err) })
                 .pipe(pluginAutoPrefixer({
                     browsersList: ['last 2 version']    // Could be tweaked according to the browser requisites
                 })).on('error', function (err) { callback(err) })
-                .pipe(cssmin({ inline: ['none'], level: 2 }))
-                .pipe(gulp.dest(ctx.baseDir + ctx.sourceFolder));
+				.pipe(cssmin({ inline: ['none'], level: 2 }))
+				.pipe(gulp.dest(ctx.baseDir + ctx.sourceFolder));
         }
     });
 
