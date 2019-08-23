@@ -42,9 +42,9 @@ module.exports = function (gulpWrapper, ctx) {
     /**
      * Create bundles as was configured in gulp file
      */
-    gulp.task('bundle-app', function (cb) {
+    gulp.task('_bundle-app', function (cb) {
 
-        if (ctx.bundleBuilderOn && ctx.bundleBuilderOn == true &&
+        if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
             && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
             var builder = new sysBuilder('', ctx.baseDir + ctx.bundleBuilderInitialConfig);
@@ -112,7 +112,7 @@ module.exports = function (gulpWrapper, ctx) {
         }
 
         // Copy Assets
-        if (ctx.bundleBuilderOn &&
+        if (ctx.isBundleBuilderOn &&
             ctx.bundleBuilderAssetsConfig && ctx.bundleBuilderAssetsConfig.length > 0) {
 
             ctx.bundleBuilderAssetsConfig.forEach(bundleElement => {
@@ -139,8 +139,17 @@ module.exports = function (gulpWrapper, ctx) {
      * Compile typescript files
      */
     gulp.task('build', function (cb) {
-        gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
-        return pluginRunSequence(['bundle-app'], cb);
+        var tasks = ['_build'];
+        if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true) {    
+			tasks = tasks.concat(['_bundle-app']);
+        }
+        return pluginRunSequence(tasks, cb);
+    });
+    /**
+     * Internal Task to Compile typescript files
+     */
+    gulp.task('_build', function (cb) {
+        return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
     });
 
     gulp.task('deploy', function (cb) {
