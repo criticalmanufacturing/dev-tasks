@@ -610,6 +610,7 @@ module.exports = function (gulpWrapper, ctx) {
                 `!${ctx.baseDir}src/**/style/fonts/**/metadata.ts`,
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
+                rulesDirectory: [utils.dependencies.lookupNodeModule("codelyzer")],
                 formatter: "stylish",
                 fix: pluginYargs.fix ? true : false
             }))
@@ -644,7 +645,7 @@ module.exports = function (gulpWrapper, ctx) {
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 configuration: {
-                    rulesDirectory: [utils.dependencies.lookupNodeModule("tslint-no-circular-imports")],
+                    rulesDirectory: [utils.dependencies.lookupNodeModule("codelyzer"), utils.dependencies.lookupNodeModule("tslint-no-circular-imports")],
                     rules: new Map([['no-circular-imports', {
                         defaultRuleSeverity: "warning",
                         ruleSeverity: "warning"
