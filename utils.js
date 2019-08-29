@@ -1,6 +1,9 @@
 var pluginExecute = require("child_process").exec;
 var fileSystem = require("fs");
 var path = require('path');
+var findNodeModules = require('find-node-modules');
+const fsExtra = require('fs-extra')
+
 
 if (!String.prototype.endsWith) {
     String.prototype.endsWith = function (searchString, position) {
@@ -14,13 +17,13 @@ if (!String.prototype.endsWith) {
     };
 }
 
-if(!String.prototype.startsWith){
+if (!String.prototype.startsWith) {
     String.prototype.startsWith = function (prefix) {
         return this.indexOf(prefix, 0) !== -1;
     };
 }
 
-if(!Array.prototype.clean){
+if (!Array.prototype.clean) {
     Array.prototype.clean = function (deleteValue) {
         for (var i = 0; i < this.length; i++) {
             if (this[i] == deleteValue) {
@@ -33,7 +36,28 @@ if(!Array.prototype.clean){
 }
 
 module.exports = {
-
+    dependencies: {
+        /**
+         * Lookup for absolute path of node_modules package
+         * 
+         * @param packageName Package Name
+         * @return {string|undefined} The result of path resolution or undefined when no path is found.
+         */
+        lookupNodeModule: function (packageName) {
+            try {
+                var nodeModulesPaths = findNodeModules(__dirname);
+                for (const npath of nodeModulesPaths) {
+                    const currentPath = path.resolve(__dirname, path.join(npath, packageName));
+                    if (fsExtra.pathExistsSync(currentPath)) {
+                        return currentPath;
+                    }
+                }
+                return undefined;
+            } catch (err) {
+                return undefined;
+            }
+        }
+    },
     fs: {
         /**
          * Try get the content of a file.
@@ -48,7 +72,7 @@ module.exports = {
                 return undefined;
             }
         },
-        
+
         /**
          * Try get the content of a file.
          * 
@@ -58,11 +82,11 @@ module.exports = {
         tryGetJSONSync: function (path) {
             try {
                 return JSON.parse(fileSystem.readFileSync(path, "utf8"));
-            }catch(err) {
+            } catch (err) {
                 return undefined;
             }
         },
-        
+
         /**
          * Save Object to File
          * Note: if the file already exists, all its content will be replaced
@@ -71,7 +95,7 @@ module.exports = {
          * @param object Any JSON object
          * @param {function} callback Callback function.
          */
-        saveObjectToFile: function (path, object, callback){
+        saveObjectToFile: function (path, object, callback) {
             if (object) {
                 // if metadata is defined, save the file
                 fileSystem.writeFile(path, JSON.stringify(object), function (err) {
@@ -109,8 +133,8 @@ module.exports = {
          * @returns {boolean} True if path is a directory, false otherwise.
          */
         isDirectory: function isDirectory(srcpath) {
-            try {        
-                return fileSystem.statSync(srcpath).isDirectory();        
+            try {
+                return fileSystem.statSync(srcpath).isDirectory();
             }
             catch (exception) {
                 return false;
@@ -135,7 +159,7 @@ module.exports = {
          * Run a command.
          * Internally it uses node spawn.
          */
-        run: function(cmd, callback) {
+        run: function (cmd, callback) {
             var spawn = require('child_process').spawn;
             var command = spawn(
                 cmd.command,
@@ -143,25 +167,25 @@ module.exports = {
                 {
                     cwd: cmd.cwd
                 }
-            );            
+            );
 
             var result = '';
-            command.stdout.on('data', function(data) {                
+            command.stdout.on('data', function (data) {
                 result += data.toString();
             });
-            command.stderr.on('data', function(error) {
-                console.error(error);   
-                process.exit(-1);             
+            command.stderr.on('data', function (error) {
+                console.error(error);
+                process.exit(-1);
             });
-            command.on('close', function(code) {
+            command.on('close', function (code) {
                 console.log(result);
                 if (code !== 0) {
                     process.exit(-1);
                     return;
-                } 
+                }
                 return callback(result);
             });
-            command.on('error', function( err ){ console.error(err); process.exit(-1); })        
+            command.on('error', function (err) { console.error(err); process.exit(-1); })
         },
 
         /**
@@ -170,25 +194,25 @@ module.exports = {
          * @param callback {Function} Callback function to call at the end of the execution
          * @param chunk {number} How many parallel executions?
          */
-        runMany: function(commands, callback, chunk) {
-            if(!commands || !Array.isArray(commands) || commands.length < 1){
+        runMany: function (commands, callback, chunk) {
+            if (!commands || !Array.isArray(commands) || commands.length < 1) {
                 callback();
             }
 
             // If chunk if not defined, then we run all commands in parallel
-            if(!chunk){
+            if (!chunk) {
                 var total = commands.length;
                 var current = 0;
 
-                var finalize = function(j){
-                    return function() {
+                var finalize = function (j) {
+                    return function () {
                         current++;
-                        if (current === total) {                            
+                        if (current === total) {
                             callback();
                         }
                     }
-                };                
-                for(var i = 0; i < commands.length; i++){                
+                };
+                for (var i = 0; i < commands.length; i++) {
                     this.run(commands[i], finalize(i));
                 }
 
@@ -196,16 +220,16 @@ module.exports = {
                 // First device the commands in chunks
                 var tempArray = []; // TempArray will be an array of arrays [[command1, command2], [command3, command4], ...]
 
-                for (var i = 0, j = commands.length; i < j; i+=chunk) {
-                    tempArray.push(commands.slice(i,i+chunk));
+                for (var i = 0, j = commands.length; i < j; i += chunk) {
+                    tempArray.push(commands.slice(i, i + chunk));
                 }
 
                 var self = this;
-                var recursive = function(counter) {
-                    self.runMany(tempArray[counter], function(){
-                        if((counter + 1) < tempArray.length){
+                var recursive = function (counter) {
+                    self.runMany(tempArray[counter], function () {
+                        if ((counter + 1) < tempArray.length) {
                             recursive(counter + 1);
-                        }else{
+                        } else {
                             callback();
                         }
                     });

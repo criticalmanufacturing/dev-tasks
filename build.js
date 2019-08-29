@@ -27,6 +27,7 @@ var pluginHTMLMinify = require('html-minifier').minify;
 var TSLint = require("tslint");
 var cssmin = require('gulp-clean-css');
 var concat = require('gulp-concat');
+var utils = require('./utils.js');
 								   
 
 //module specific plugins
@@ -69,8 +70,8 @@ module.exports = function (gulpWrapper, ctx) {
 	
     var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
-    var typescriptCompilerPath = path.join(ctx.__repositoryRoot, '/node_modules/typescript/bin/tsc');
-    var tslintPath = path.join(ctx.__repositoryRoot, '/node_modules/tslint/bin/tslint');
+    var typescriptCompilerPath = utils.dependencies.lookupNodeModule("typescript") + "/bin/tsc";
+    var tslintPath = utils.dependencies.lookupNodeModule("tslint") + "/bin/tslint";
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
     var excludei18nAndMetadata = function() {        
@@ -643,8 +644,7 @@ module.exports = function (gulpWrapper, ctx) {
             ...packageExclusionList.map((exclusion) => `!${ctx.baseDir}${exclusion}`)])
             .pipe(pluginTslint({
                 configuration: {
-                    rulesDirectory: [
-                        `${ctx.__repositoryRoot}/node_modules/tslint-no-circular-imports`],
+                    rulesDirectory: [utils.dependencies.lookupNodeModule("tslint-no-circular-imports")],
                     rules: new Map([['no-circular-imports', {
                         defaultRuleSeverity: "warning",
                         ruleSeverity: "warning"
