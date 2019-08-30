@@ -17,7 +17,7 @@ module.exports = function (gulpWrapper, ctx) {
 
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
-    var typescriptCompilerPath = nodePath.join(ctx.__repositoryRoot, 'node_modules/typescript/bin/tsc');
+    var typescriptCompilerPath = utils.dependencies.lookupNodeModule("typescript") + "/bin/tsc";
     var getDirectories = function (path, startsWith) {
         try {
             var directory = fs.readdirSync(path);
