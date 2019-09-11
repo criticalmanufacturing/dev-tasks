@@ -54,7 +54,7 @@ module.exports = function (gulpWrapper, ctx) {
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
             && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
-            var builder = new sysBuilder('apps/cmf.core.web',ctx.bundleBuilderInitialConfig);
+            var builder = new sysBuilder(`apps/${ctx.packageName}`, ctx.baseDir + ctx.bundleBuilderInitialConfig);
             ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
                 var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
                 var toMinify = bundleElement.bundleMinify === undefined ? true : bundleElement.bundleMinify;
