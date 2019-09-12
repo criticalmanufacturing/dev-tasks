@@ -38,7 +38,14 @@ module.exports = function (gulpWrapper, ctx) {
         }
         return result;
     }
-
+	function setPathsDynamic(paths, baseDir) {
+		if (paths && paths.length > 0) {
+			paths.forEach(function(part, index, array) {
+				array[index] = `${baseDir}${array[index]}`;
+			});
+		}
+		return paths;
+	}
     /**
      * Create bundles as was configured in gulp file
      */
@@ -47,7 +54,7 @@ module.exports = function (gulpWrapper, ctx) {
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
             && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
-            var builder = new sysBuilder('', ctx.baseDir + ctx.bundleBuilderInitialConfig);
+            var builder = new sysBuilder(`apps/${ctx.packageName}`, ctx.baseDir + ctx.bundleBuilderInitialConfig);
             ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
                 var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
                 var toMinify = bundleElement.bundleMinify === undefined ? true : bundleElement.bundleMinify;
@@ -67,10 +74,13 @@ module.exports = function (gulpWrapper, ctx) {
                             }
                         }
                     });
+					
+					paths = setPathsDynamic(paths, ctx.baseDir);
+					
                     // JS Files
                     if (fileExtension && fileExtension.endsWith('js')) {
                         if (currentExpressions && currentExpressions.length > 0) {
-                            builder.bundle(currentExpressions.join(' + ').toString(), `node_modules/bundles/${fileExtension}/${bundleElement.bundleName}`
+                            builder.bundle(currentExpressions.join(' + ').toString(), `${ctx.baseDir}/node_modules/bundles/${fileExtension}/${bundleElement.bundleName}`
                                 , { minify: toMinify, sourceMaps: false });
                         }
                         if (paths && paths.length > 0) {
@@ -84,12 +94,12 @@ module.exports = function (gulpWrapper, ctx) {
                                         },
                                         noSource: true
                                     }))
-                                    .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                                    .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
                             }
                             else {
                                 gulp.src(paths)
                                     .pipe(concat(bundleElement.bundleName))
-                                    .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                                    .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
                             }
                         }
                     }
@@ -99,12 +109,12 @@ module.exports = function (gulpWrapper, ctx) {
                             gulp.src(paths)
                                 .pipe(concat(bundleElement.bundleName))
                                 .pipe(cleanCss({ inline: ['none'], level: 2 }))
-                                .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                                .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
                         }
                         else {
                             gulp.src(paths)
                                 .pipe(concat(bundleElement.bundleName))
-                                .pipe(gulp.dest(`node_modules/bundles/${fileExtension}`));
+                                .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
                         }
                     }
                 }
@@ -128,8 +138,9 @@ module.exports = function (gulpWrapper, ctx) {
                             }
                         }
                     });
+					paths = setPathsDynamic(paths, ctx.baseDir);
                     return gulp.src(paths)
-                        .pipe(gulp.dest(bundleElement.bundleDestPath));
+                        .pipe(gulp.dest(`${ctx.baseDir}/${bundleElement.bundleDestPath}`));
                 }
             });
         }
