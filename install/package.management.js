@@ -1,6 +1,6 @@
 var fs = require("fs"),
-	pluginRename = require('gulp-rename'), 
-	pluginDel = require("del"), 
+	pluginRename = require('gulp-rename'),
+	pluginDel = require("del"),
 	pluginExecute = require("child_process").exec,
 	pluginExecuteSync = require("child_process").execSync,
 	pluginfsExtra = require("fs-extra"),
@@ -14,8 +14,10 @@ pluginYargs = pluginYargs.argv;
 
 // List of packages that are allowed to be linked outside the project
 const EXTERNAL_LINK_IGNORE_LIST = [];
+// path to package-lock.json file in the current directory
+const pathToPackageLock = "./package-lock.json";
 
-module.exports = function (gulpWrapper, ctx) {	
+module.exports = function (gulpWrapper, ctx) {
 	var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq;
 
 	var packagesToLink = [];
@@ -23,10 +25,10 @@ module.exports = function (gulpWrapper, ctx) {
 	var getDirectories = function (path) {
 		try {
 			var directory = fs.readdirSync(path);
-            return directory.filter(function (file) {
-                return fs.statSync(path + '/' + file).isDirectory();
-            });
-		} catch (e) {return [];}
+			return directory.filter(function (file) {
+				return fs.statSync(path + '/' + file).isDirectory();
+			});
+		} catch (e) { return []; }
 	};
 
 	var pathExistsAndIsNotLink = function pathExistsAndIsNotLink(path) {
@@ -45,8 +47,8 @@ module.exports = function (gulpWrapper, ctx) {
 			if (typeof packageObj.cmfLinkDependencies === "object") {
 				const packagesToDiscover = [];
 
-				Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function(dependencyName) {
-					const package = { name: dependencyName };	
+				Object.getOwnPropertyNames(packageObj.cmfLinkDependencies).forEach(function (dependencyName) {
+					const package = { name: dependencyName };
 
 					/**
 					 * We have 2 approaches to do links
@@ -69,7 +71,7 @@ module.exports = function (gulpWrapper, ctx) {
 
 					// Normalize paths
 					package.path = pluginPath.normalize(package.path);
-					
+
 					// Check if we're trying to link to itself and stop
 					if (package.path.startsWith(pluginPath.normalize(ctx.baseDir))) {
 						if (ctx.__verbose) {
@@ -99,7 +101,7 @@ module.exports = function (gulpWrapper, ctx) {
 						}
 						packagesToLink.push(package);
 						packagesToDiscover.push(package);
-					}												
+					}
 				});
 
 				// After adding all packages of this level, let's discover the new ones
@@ -114,33 +116,33 @@ module.exports = function (gulpWrapper, ctx) {
 	/**
      * Removes stale files and directories. After this a new install is required.
      */
-    gulp.task('purge', ['__cleanLibs'], function (callback) {
-        pluginDel.sync([
+	gulp.task('purge', ['__cleanLibs'], function (callback) {
+		pluginDel.sync([
 			ctx.baseDir + ctx.metadataFileName,
-            ctx.baseDir + "obj",
+			ctx.baseDir + "obj",
 			ctx.baseDir + "bin"
 		], { force: true });
 		callback();
-    });
+	});
 
 	/**
 	 * Cleans the libs folder allowing a clean install.
 	 * This also needs to remove the previous package-lock for a clean install.
 	 * There is an exception here, which is the webApp for customized projects. We can't delete the libs folder as we would be removing the HTML5 release.
 	 */
-	gulp.task('__cleanLibs',  function (callback) {	
+	gulp.task('__cleanLibs', function (callback) {
 		pluginDel.sync([
 			ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + "package-lock.json", // NPM v5 generated file
 			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
 		], { force: true });
 		callback();
-	}); 
+	});
 
     /*
     * Installs all npm packages (public and private)
-    */ 
-    gulp.task('__npmInstall',  function(callback) {
+    */
+	gulp.task('__npmInstall', function (callback) {
 		const npm = ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm";
 		var command = `${npm} ${pluginYargs.ci ? 'ci' : 'install'} --scripts-prepend-node-path=true`;
 
@@ -154,34 +156,112 @@ module.exports = function (gulpWrapper, ctx) {
 			command = command + " --production";
 		}
 
-		try {								
- 			pluginExecute(command, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
- 				if (error instanceof Error) {
- 					console.error(stderr);	
- 				} 
- 				callback();
- 			});			
-  		} catch(ex) {
- 			console.error(ex);			
-  			callback();
-  		}
+		try {
+			pluginExecute(command, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+				if (error instanceof Error) {
+					console.error(stderr);
+				}
+				callback();
+			});
+		} catch (ex) {
+			console.error(ex);
+			callback();
+		}
+	});
+
+	/**
+	 * Installs all npm packages (public and private)
+	 * Uses yarn package manager instead of npm package manager
+	 */
+	gulp.task('__yarnInstall', function (callback) {
+		const yarn = ctx.__config && ctx.__config.__yarn ? ctx.__config.__yarn : "yarn";
+		var command = `${yarn} install`;
+
+		if (pluginYargs.flat) {
+			command = command + " --flat";
+		}
+
+		// Install production in webApp
+		// Don't need dev dependencies here, just keep it small
+		if (ctx.type === "webApp") {
+			command = command + " --production";
+		}
+
+		try {
+			pluginExecute(command, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+				if (error instanceof Error) {
+					console.error(stderr);
+				}
+				callback();
+			});
+		} catch (ex) {
+			console.error(ex);
+			callback();
+		}
+	});
+
+	/**
+	 * Installs all npm packages (public and private)
+	 * Determines whether it is to run npm install and dedupe its dependencies or to run npm ci
+     */
+	gulp.task('__installDependencies', function (callback) {
+		var isToDedupe = false;
+		const npm = ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm";
+		var command = `${npm}`;
+		if (!pluginYargs.oldInstall) {
+			if (fs.existsSync(pathToPackageLock)) {
+				command += " ci";
+			} else {
+				command += " install";
+				isToDedupe = true;
+			}
+		} else {
+			command += " install";
+			isToDedupe = true;
+		}
+
+		// Install production in webApp
+		// Don't need dev dependencies here, just keep it small
+		if (ctx.type === "webApp") {
+			command = command + " --production";
+		}
+		command += " --scripts-prepend-node-path=true";
+		/** 
+		 * If we are running a npm install then it is necessary to dedupe
+		 * So we add the 'npm dedupe' to the npm install command
+		 */
+		if (isToDedupe) {
+			command += ` && ${npm} dedupe`;
+		}
+
+		try {
+			pluginExecute(command, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+				if (error instanceof Error) {
+					console.error(stderr);
+				}
+				callback();
+			});
+		} catch (ex) {
+			console.error(ex);
+			callback();
+		}
 	});
 
     /*
      * Dedupe the libs installed by NPM
-     */ 
-    gulp.task('__dedupeLibs',  function(callback) {	
-		try {								
- 			pluginExecute(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm"} dedupe --scripts-prepend-node-path=true`, { cwd: ctx.baseDir }, function(error, stdout, stderr) {
- 				if (error instanceof Error) {
- 					console.error(stderr);
- 				}
- 				callback();
- 			});			
-  		} catch(ex) {
- 			console.error(ex);			
-  			callback();
-  		}
+     */
+	gulp.task('__dedupeLibs', function (callback) {
+		try {
+			pluginExecute(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm"} dedupe --scripts-prepend-node-path=true`, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+				if (error instanceof Error) {
+					console.error(stderr);
+				}
+				callback();
+			});
+		} catch (ex) {
+			console.error(ex);
+			callback();
+		}
 	});
 
 
@@ -190,25 +270,25 @@ module.exports = function (gulpWrapper, ctx) {
 	* In these cases we copy each one to the according package. The ts compiler will pick it up there being called index.d.ts.
 	*/
 	gulp.task('__copyLocalTypings', function (callback) {
-    	try {
-	    	// If we have an i18n module file we generate the bundle, otherwise, we skip it	    	
+		try {
+			// If we have an i18n module file we generate the bundle, otherwise, we skip it	    	
 			if (fs.lstatSync(ctx.baseDir + "local-typings").isDirectory()) {
-				var folders = getDirectories(ctx.baseDir + "local-typings");			
+				var folders = getDirectories(ctx.baseDir + "local-typings");
 				if (folders instanceof Array) {
 					var promiseArray = [];
-					folders.forEach(function(folder) {
+					folders.forEach(function (folder) {
 						// Check if folder already exists
 						try {
 							if (fs.lstatSync(ctx.baseDir + ctx.libsFolder + folder).isDirectory()) {
 								// Handle index.d.ts for typings
 								promiseArray.push(new Promise((resolve, reject) => {
 									gulp.src([ctx.baseDir + "local-typings/" + folder + "/" + folder + ".d.ts"])
-									.pipe(pluginRename("index.d.ts"))				    
-									.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/"))
-									.on('end', resolve);
+										.pipe(pluginRename("index.d.ts"))
+										.pipe(gulp.dest(ctx.baseDir + ctx.libsFolder + folder + "/"))
+										.on('end', resolve);
 								}));
 							}
-						} catch(error){
+						} catch (error) {
 							//folder does not exist
 						}
 					});
@@ -221,13 +301,13 @@ module.exports = function (gulpWrapper, ctx) {
 						callback();
 						return;
 					}
-				}			
+				}
 			}
 			else {
 				callback();
 				return;
-			} 
-    	} catch(error){
+			}
+		} catch (error) {
 			//folder does not exist
 			callback();
 		}
@@ -236,23 +316,23 @@ module.exports = function (gulpWrapper, ctx) {
 	/**
 	 * Recursively follows all dependencies defined in the cmfLinkDependencies object of the package.json. All nested dependencies get linked.
 	 */
-	gulp.task('__linkDependencies',  function (callback) {	
-	    try {	
+	gulp.task('__linkDependencies', function (callback) {
+		try {
 
 			if (packagesToLink.length === 0) {
 				// In case the task was called explicitly (not from install), get packages to link
 				getPackagesToLink(packagesToLink, ctx.baseDir);
 			}
 
-			if (packagesToLink.length > 0) {	
+			if (packagesToLink.length > 0) {
 				// check that node_modules does indeed exist. It may not if the only dependencies are links (common in customization)
 				let nodeModulesPath = pluginPath.join(ctx.baseDir, "node_modules");
 				if (!fs.existsSync(nodeModulesPath)) {
 					fs.mkdirSync(nodeModulesPath)
 				}
-				
+
 				pluginDel.sync(packagesToLink.map((package) => ctx.baseDir + ctx.libsFolder + package.name), { force: true });
-				
+
 				// In the future, we can use the npm link to link all packages
 				// This is the best option, but there's still some issues
 				// packagesToLink.filter(p => !p.name.startsWith("@")).forEach(package => {
@@ -262,18 +342,18 @@ module.exports = function (gulpWrapper, ctx) {
 				// gulpUtil.log(`${packagesToLink.length} packages linked.`);
 
 				// Let's extract the scoped packages and link them after the non scoped packages as we need to change the cwd
-				let filterScopedPackages = (package) => package.name.startsWith("@") && package.name.includes("/");				
+				let filterScopedPackages = (package) => package.name.startsWith("@") && package.name.includes("/");
 				let scopedPackages = packagesToLink.filter(filterScopedPackages);
 				if (scopedPackages.length > 0) {
-					scopedPackages.forEach(function(package){
+					scopedPackages.forEach(function (package) {
 						packagesToLink.splice(packagesToLink.indexOf(package), 1); // Remove scoped packages
 					});
 				}
 
 				packagesToLink.forEach(package => pluginExecuteSync(`mklink /j ${package.name} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder }));
-				
+
 				if (scopedPackages.length > 0) {
-					scopedPackages.forEach(function(package) {
+					scopedPackages.forEach(function (package) {
 						// link each package moving to the right cwd
 						let [scope, packageName] = package.name.split("/");
 						const scopePath = pluginPath.join(ctx.baseDir, ctx.libsFolder, scope);
@@ -281,7 +361,7 @@ module.exports = function (gulpWrapper, ctx) {
 							// Ensure scope path exists
 							fs.mkdirSync(scopePath);
 						}
-						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });	
+						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });
 					});
 				}
 
@@ -291,14 +371,14 @@ module.exports = function (gulpWrapper, ctx) {
 						.concat(scopedPackages)
 						.forEach(package => gulpUtil.log("New symLink:", gulpUtil.colors.grey(ctx.baseDir + ctx.libsFolder + package.name), "->", gulpUtil.colors.green(package.path)));
 				}
-				
+
 				gulpUtil.log(`${packagesToLink.length + scopedPackages.length} packages linked.`);
 			}
 			callback();
-		} catch(ex) {
+		} catch (ex) {
 			console.error(ex);
 			callback();
-		}		
+		}
 	});
 
 	gulp.task('__removeLinkedDependencies', function (callback) {
@@ -313,7 +393,7 @@ module.exports = function (gulpWrapper, ctx) {
 		if (!fs.existsSync(configPathBk)) {
 			pluginfsExtra.copyFileSync(configPath, configPathBk);
 		}
-		
+
 		// Remove from dependencies and optional dependencies all links
 		packagesToLink.forEach(packageToLink => {
 			if (packageConfig.dependencies) {
@@ -333,22 +413,22 @@ module.exports = function (gulpWrapper, ctx) {
 		var configPathBk = pluginPath.join(ctx.baseDir, "package.json.bk");
 		// Restore the backed up file
 		if (fs.existsSync(configPathBk)) {
-			pluginfsExtra.moveSync(configPathBk, pluginPath.join(ctx.baseDir, "package.json"), {overwrite: true});
+			pluginfsExtra.moveSync(configPathBk, pluginPath.join(ctx.baseDir, "package.json"), { overwrite: true });
 		}
 		callback();
 	});
 
-     /**
-     * Installation Task
-     * Remarks: only needs to be run the first time or after a git pull
-     */
-    gulp.task('install', function (callback) {
+	/**
+	* Installation Task
+	* Remarks: only needs to be run the first time or after a git pull
+	*/
+	gulp.task('install', function (callback) {
 		var taskArray = [];
 		var link = pluginYargs.link == null || pluginYargs.link === true;
 		var shouldRemoveLinksBeforeInstall = link && ctx.type !== "webApp";
 
 		// Clean tasks
-		if (pluginYargs.clean !== false) {
+		if (pluginYargs.oldInstall) {
 			taskArray.push('__cleanLibs');
 		}
 
@@ -364,10 +444,13 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 
 		// Add tasks
-		taskArray.push('__npmInstall');
-		// if (ctx.type === "webApp") {
-			taskArray.push('__dedupeLibs');
-		// }
+		if (pluginYargs.yarn) {
+			taskArray.push('__yarnInstall');
+		} else {
+			taskArray.push('__installDependencies');
+		}
+
+		// taskArray.push('__dedupeLibs');
 		taskArray.push('__copyLocalTypings');
 
 		// Restore the package.json file
@@ -381,7 +464,7 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 
 		// The best approach would be linking first and then make an "npm -i" but there is a bug on npm that steals the dependencies packages, so for instance, it would steal lbo's moment when installing cmf.core. We do it the other way arround to prevent this bug (https://github.com/npm/npm/issues/10343)
-		seq(taskArray, callback);		
+		seq(taskArray, callback);
 	});
 
 	/**
