@@ -134,6 +134,7 @@ module.exports = function (gulpWrapper, ctx) {
 		pluginDel.sync([
 			ctx.baseDir + ctx.libsFolder,
 			ctx.baseDir + "package-lock.json", // NPM v5 generated file
+			ctx.baseDir + "yarn.lock", // NPM v5 generated file
 			// ctx.baseDir + "npm-shrinkwrap.json", // Uncomment this if needed
 		], { force: true });
 		callback();
@@ -183,7 +184,7 @@ module.exports = function (gulpWrapper, ctx) {
 
 		// Install production in webApp
 		// Don't need dev dependencies here, just keep it small
-		if (ctx.type === "webApp") {
+		if (ctx.type === "webApp" || pluginYargs.production) {
 			command = command + " --production";
 		}
 
