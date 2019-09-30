@@ -113,6 +113,15 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 	};
 
+	function CheckIfCommandExists(command) {
+		pluginExecute(command, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+			if (error instanceof Error) {
+				console.error(`\nPlease make sure ${command} is installed in this machine.`);
+				throw stderr;
+			}
+		});
+	}
+
 	/**
      * Removes stale files and directories. After this a new install is required.
      */
@@ -427,6 +436,8 @@ module.exports = function (gulpWrapper, ctx) {
 		var taskArray = [];
 		var link = pluginYargs.link == null || pluginYargs.link === true;
 		var shouldRemoveLinksBeforeInstall = link && ctx.type !== "webApp";
+		// The default package manager we use is npm so the default command to check if exists is set to npm.
+		var commandToCheck = "npm";
 
 		// Clean tasks
 		if (pluginYargs.clean === true || pluginYargs.update || pluginYargs.rebuild) {
@@ -446,10 +457,13 @@ module.exports = function (gulpWrapper, ctx) {
 
 		// Add tasks
 		if (pluginYargs.yarn) {
+			// If the --yarn option is passed then we set the command to be checked to yarn.
+			commandToCheck = "yarn";
 			taskArray.push('__yarnInstall');
 		} else {
 			taskArray.push('__installDependencies');
 		}
+		CheckIfCommandExists(commandToCheck);
 
 		// taskArray.push('__dedupeLibs');
 		taskArray.push('__copyLocalTypings');
