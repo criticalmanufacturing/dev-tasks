@@ -8,7 +8,7 @@ var gulpUtil = require("gulp-util");
 
 module.exports = function (gulpWrapper, ctx) {
     var gulp = gulpWrapper.gulp;
-    
+
     // Parse global parameters that need to be used by this plugin
     // Read parameters
     var tag = args.tag || "latest";
@@ -20,7 +20,7 @@ module.exports = function (gulpWrapper, ctx) {
      * Upgrades current package version.
      * If --append is defined, just appends given version to current version
      */
-    gulp.task("__bump-version", function() {
+    gulp.task("__bump-version", function () {
         var targetVersion = version;
 
         var packageConfig = JSON.parse(fs.readFileSync(path.join(ctx.baseDir, "package.json"), 'utf8'));
@@ -32,12 +32,12 @@ module.exports = function (gulpWrapper, ctx) {
         } else {
             targetVersion = version
         }
-        
+
         gulpUtil.log(gulpUtil.colors.blue(packageConfig.version), gulpUtil.colors.grey("->"), gulpUtil.colors.green(targetVersion));
 
         return gulp
-            .src("package.json", {cwd: ctx.baseDir})
-            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} version ${targetVersion} --no-git-tag-version --scripts-prepend-node-path=true`, {cwd: ctx.baseDir, verbose: true}));
+            .src("package.json", { cwd: ctx.baseDir })
+            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} version ${targetVersion} --no-git-tag-version --scripts-prepend-node-path=true`, { cwd: ctx.baseDir, verbose: true }));
     });
 
     /**
@@ -45,17 +45,17 @@ module.exports = function (gulpWrapper, ctx) {
      * Publish current package to the NPM registry.
      * It uses given TAG (default to latest).
      */
-    gulp.task("__publish", function() {
+    gulp.task("__publish", function () {
         gulpUtil.log(`Publishing ${ctx.baseDir} with tag '${tag}'`);
 
         return gulp
-            .src("package.json", {cwd: ctx.baseDir})
-            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} publish --tag=${tag} --git-tag-version=false --scripts-prepend-node-path=true`, {cwd: ctx.baseDir, verbose: true}));
+            .src("package.json", { cwd: ctx.baseDir })
+            .pipe(shell(`${ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : 'npm'} publish --tag=${tag} --git-tag-version=false --scripts-prepend-node-path=true`, { cwd: ctx.baseDir, verbose: true }));
     });
 
 
     // Register task for publish
-    gulp.task("ci:publish", function(done) {
+    gulp.task("ci:publish", function (done) {
         var tasks = [];
 
         // Check if there is package.json
@@ -63,7 +63,7 @@ module.exports = function (gulpWrapper, ctx) {
             if (version) {
                 tasks.push("__bump-version");
             }
-            
+
             // Also make sure the package-lock is updates
             tasks.push("generate-package-lock");
 
@@ -78,6 +78,9 @@ module.exports = function (gulpWrapper, ctx) {
             done
         );
     });
+
+    // Provide "__bump-version" task as "bump-version" task
+    gulp.task("bump-version", ["__bump-version"]);
 
     // Provide "ci:publish" task as "publish" task
     gulp.task("publish", ["ci:publish"]);
