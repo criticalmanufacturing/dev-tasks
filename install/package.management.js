@@ -209,7 +209,7 @@ module.exports = function (gulpWrapper, ctx) {
 		var isToDedupe = false;
 		const npm = ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm";
 		var command = `${npm}`;
-		if (!pluginYargs.oldInstall) {
+		if (!(pluginYargs.update || pluginYargs.rebuild)) {
 			if (fs.existsSync(pathToPackageLock)) {
 				command += " ci";
 			} else {
@@ -429,7 +429,7 @@ module.exports = function (gulpWrapper, ctx) {
 		var shouldRemoveLinksBeforeInstall = link && ctx.type !== "webApp";
 
 		// Clean tasks
-		if (pluginYargs.oldInstall) {
+		if (pluginYargs.clean === true || pluginYargs.update || pluginYargs.rebuild) {
 			taskArray.push('__cleanLibs');
 		}
 
