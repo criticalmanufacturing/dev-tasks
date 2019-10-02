@@ -14,8 +14,8 @@ pluginYargs = pluginYargs.argv;
 
 // List of packages that are allowed to be linked outside the project
 const EXTERNAL_LINK_IGNORE_LIST = [];
-// path to package-lock.json file in the current directory
-const pathToPackageLock = "./package-lock.json";
+// name of package-lock.json file
+const packageLockFile = "package-lock.json";
 
 module.exports = function (gulpWrapper, ctx) {
 	var gulp = gulpWrapper.gulp, seq = gulpWrapper.seq;
@@ -219,7 +219,7 @@ module.exports = function (gulpWrapper, ctx) {
 		const npm = ctx.__config && ctx.__config.__npm ? ctx.__config.__npm : "npm";
 		var command = `${npm}`;
 		if (!(pluginYargs.update || pluginYargs.rebuild)) {
-			if (fs.existsSync(pathToPackageLock)) {
+			if (fs.existsSync(`${ctx.baseDir}/${packageLockFile}`)) {
 				command += " ci";
 			} else {
 				command += " install";
@@ -437,7 +437,7 @@ module.exports = function (gulpWrapper, ctx) {
 		var link = pluginYargs.link == null || pluginYargs.link === true;
 		var shouldRemoveLinksBeforeInstall = link && ctx.type !== "webApp";
 		// The default package manager we use is npm so the default command to check if exists is set to npm.
-		var commandToCheck = "npm";
+		var commandToCheck = "npm -v";
 
 		// Clean tasks
 		if (pluginYargs.clean === true || pluginYargs.update || pluginYargs.rebuild) {
@@ -458,7 +458,7 @@ module.exports = function (gulpWrapper, ctx) {
 		// Add tasks
 		if (pluginYargs.yarn) {
 			// If the --yarn option is passed then we set the command to be checked to yarn.
-			commandToCheck = "yarn";
+			commandToCheck = "yarn -v";
 			taskArray.push('__yarnInstall');
 		} else {
 			taskArray.push('__installDependencies');
