@@ -278,7 +278,7 @@ module.exports = function (gulpWrapper, ctx) {
                 middleware: function (req, res, next) {
                     var url = req.url.split("?").shift();
 
-                    if (req.method == 'GET' && url.indexOf(".") < 0) {
+                    if (req.method == 'GET' && url.match(/^.+\.[^\/]+$/gmi) == null) {
                         // This is a fallback. We request the initial index.html and we inject a global that will the app know it is in dev-mode, by default the application runs in bundle-mode
                         var indexContent = fs.readFileSync(ctx.baseDir + 'index.html').toString();
                         indexContent = indexContent.replace(new RegExp("<head>"), function (match) {
