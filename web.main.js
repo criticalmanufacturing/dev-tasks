@@ -14,7 +14,12 @@ var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
 
 module.exports = function (gulpWrapper, ctx) {
-
+    
+    var bundlePath = ctx.bundlePath ? ctx.bundlePath : "bundles";
+    if(bundlePath[bundlePath.length - 1] !== "/") {
+        bundlePath = bundlePath + "/";
+    }
+ 
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
     var typescriptCompilerPath = utils.dependencies.lookupNodeModule("typescript") + "/bin/tsc";
@@ -80,7 +85,7 @@ module.exports = function (gulpWrapper, ctx) {
                     // JS Files
                     if (fileExtension && fileExtension.endsWith('js')) {
                         if (currentExpressions && currentExpressions.length > 0) {
-                            builder.bundle(currentExpressions.join(' + ').toString(), `${ctx.baseDir}/node_modules/bundles/${fileExtension}/${bundleElement.bundleName}`
+                            builder.bundle(currentExpressions.join(' + ').toString(), `${ctx.baseDir}${bundlePath}${fileExtension}/${bundleElement.bundleName}`
                                 , { minify: toMinify, sourceMaps: false });
                         }
                         if (paths && paths.length > 0) {
@@ -94,12 +99,12 @@ module.exports = function (gulpWrapper, ctx) {
                                         },
                                         noSource: true
                                     }))
-                                    .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
+                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
                             }
                             else {
                                 gulp.src(paths)
                                     .pipe(concat(bundleElement.bundleName))
-                                    .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
+                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
                             }
                         }
                     }
@@ -109,12 +114,12 @@ module.exports = function (gulpWrapper, ctx) {
                             gulp.src(paths)
                                 .pipe(concat(bundleElement.bundleName))
                                 .pipe(cleanCss({ inline: ['none'], level: 2 }))
-                                .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
+                                .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
                         }
                         else {
                             gulp.src(paths)
                                 .pipe(concat(bundleElement.bundleName))
-                                .pipe(gulp.dest(`${ctx.baseDir}/node_modules/bundles/${fileExtension}`));
+                                .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
                         }
                     }
                 }
