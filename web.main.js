@@ -16,10 +16,15 @@ var cleanCss = require('gulp-clean-css');
 module.exports = function (gulpWrapper, ctx) {
     
     var bundlePath = ctx.bundlePath ? ctx.bundlePath : "bundles";
+
+    if(bundlePath[0] !== "/") {
+        bundlePath = "/" + bundlePath;
+    }
+ 
     if(bundlePath[bundlePath.length - 1] !== "/") {
         bundlePath = bundlePath + "/";
     }
- 
+
     var gulp = gulpWrapper.gulp;
     var pluginRunSequence = gulpWrapper.seq;
     var typescriptCompilerPath = utils.dependencies.lookupNodeModule("typescript") + "/bin/tsc";
