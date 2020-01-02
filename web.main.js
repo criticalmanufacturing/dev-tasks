@@ -64,7 +64,9 @@ module.exports = function (gulpWrapper, ctx) {
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
             && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
-            var builder = new sysBuilder(`apps/${ctx.packageName}`, ctx.baseDir + ctx.bundleBuilderInitialConfig);
+            var sysBuilderDefaultDir = `apps/${ctx.packageName}`;
+            var sysBuilderBaseDir = process.cwd().includes(ctx.packageName) ? '' : sysBuilderDefaultDir;
+            var builder = new sysBuilder(sysBuilderBaseDir, ctx.baseDir + ctx.bundleBuilderInitialConfig);
             ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
                 var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
                 var toMinify = bundleElement.bundleMinify === undefined ? true : bundleElement.bundleMinify;
