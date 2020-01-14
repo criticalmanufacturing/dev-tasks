@@ -1,12 +1,12 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-  "version": "7.1.1-1",
+  "version": "7.1.1-2",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
     "@angular/compiler": "7.2.3",
     "@angular/core": "7.2.3",
-    "@criticalmanufacturing/dev-i18n-transform": "latest",
+    "@criticalmanufacturing/dev-i18n-transform": "^1.0.0",
     "async-walker": "~0.0.4",
     "clean-css": "~4.2.1",
     "codelyzer": "^4.5.0",
