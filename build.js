@@ -20,7 +20,6 @@ var spawn = require('child_process').spawn;
 var pluginIf = require('gulp-if');
 var pluginWalker = require('async-walker');
 var pluginUtil = require('gulp-util');
-var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
 var pluginTslint = require("gulp-tslint");
 var pluginCleanCSS = require('clean-css');
 var pluginHTMLMinify = require('html-minifier').minify;
