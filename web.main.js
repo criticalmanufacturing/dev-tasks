@@ -1,4 +1,3 @@
-var pluginWebServer = require('gulp-webserver');
 var pluginYargs = require('yargs').argv;
 var pluginDel = require('del');
 var pluginShell = require('gulp-shell');
@@ -262,6 +261,7 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     gulp.task('start-dev-mode', function () {
+        var pluginWebServer = require('gulp-webserver');
         var __currentCulture = "en-US";
 
         if (pluginYargs.port === undefined) {
@@ -362,7 +362,8 @@ module.exports = function (gulpWrapper, ctx) {
 
 
     gulp.task('start-bundle-mode', function () {
-
+        var pluginWebServer = require('gulp-webserver');
+        
         if (pluginYargs.port === undefined) {
             pluginYargs.port = 8001;
             pluginYargs.open = true;

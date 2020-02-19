@@ -6,7 +6,6 @@ var pluginArgs = require('yargs').argv;
 // Override maximum numbers of Event Emitter listeners
 require('events').EventEmitter.prototype._maxListeners = 100;
 var path = require('path');
-var pluginWebServer = require('gulp-webserver');
 var pluginExec = require('child_process').exec;
 var pluginExecSync = require('child_process').execSync;
 
@@ -95,7 +94,6 @@ module.exports = function (gulp, ctx) {
             seq: gulpWrapper.seq,
             exec: pluginExec,
             build: buildTasksFunction.plugins,
-			webserver: pluginWebServer,
 			yargs: require('yargs'),
             gulpWrapper: gulpWrapper
         },
