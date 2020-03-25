@@ -360,7 +360,13 @@ module.exports = function (gulpWrapper, ctx) {
 					});
 				}
 
-				packagesToLink.forEach(package => pluginExecuteSync(`mklink /j ${package.name} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder }));
+				packagesToLink.forEach(package => {
+					if(process.platform === "linux"){
+						pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: ctx.baseDir + ctx.libsFolder });
+					} else {
+						pluginExecuteSync(`mklink /j ${package.name} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder });
+					} 
+				});
 
 				if (scopedPackages.length > 0) {
 					scopedPackages.forEach(function (package) {
@@ -371,7 +377,11 @@ module.exports = function (gulpWrapper, ctx) {
 							// Ensure scope path exists
 							fs.mkdirSync(scopePath);
 						}
-						pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });
+						if(process.platform === "linux"){
+							pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: scopePath });
+						} else {
+							pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });
+						} 
 					});
 				}
 
