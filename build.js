@@ -346,6 +346,7 @@ module.exports = function (gulpWrapper, ctx) {
         var promiseToResolve = Promise.resolve(null);
         
         commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
+        commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/", "gi"), replacement: '' });
 
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
@@ -357,7 +358,7 @@ module.exports = function (gulpWrapper, ctx) {
                     // >>>>>>>>>>>>>>>>>>>>>>>>> REMOVE WHEN THE COMPILER IS ABLE TO EXCLUDE THE I18N MODULES
                     .pipe(pluginReplace(excludei18nAndMetadata()))
                     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                                        
-                    .pipe(pluginReplace({patterns: commonRegexPatterns})) 
+                    .pipe(pluginReplace({patterns: commonRegexPatterns, preserveOrder: true})) 
                     .on('error', pluginUtil.log)
                     .pipe(pluginMinify({
                         ext: {
@@ -499,8 +500,8 @@ module.exports = function (gulpWrapper, ctx) {
             });
             var additionalPatterns = [];
             additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
-            additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" });
-             
+            additionalPatterns.push({ match: new RegExp("\"i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }); 
+            additionalPatterns.push({ match: new RegExp("\/packages\/" + ctx.packageName, "gi"), replacement: ctx.packageName });
             const pjson = require(ctx.baseDir + "package.json");
 
             gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
@@ -523,7 +524,7 @@ module.exports = function (gulpWrapper, ctx) {
                 ]
             }))
             .pipe(pluginReplace(excludei18nAndMetadata()))
-            .pipe(pluginReplace({ patterns: commonRegexPatterns})) 
+            .pipe(pluginReplace({ patterns: commonRegexPatterns, preserveOrder: true})) 
             .pipe(pluginReplace({
                 patterns: additionalPatterns
             }))
