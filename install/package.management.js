@@ -361,10 +361,10 @@ module.exports = function (gulpWrapper, ctx) {
 				}
 
 				packagesToLink.forEach(package => {
-					if(process.platform === "linux"){
-						pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: ctx.baseDir + ctx.libsFolder });
-					} else {
+					if(process.platform === "win32"){
 						pluginExecuteSync(`mklink /j ${package.name} "${package.path}"`, { cwd: ctx.baseDir + ctx.libsFolder });
+					} else {
+						pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: ctx.baseDir + ctx.libsFolder });
 					} 
 				});
 
@@ -377,10 +377,10 @@ module.exports = function (gulpWrapper, ctx) {
 							// Ensure scope path exists
 							fs.mkdirSync(scopePath);
 						}
-						if(process.platform === "linux"){
-							pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: scopePath });
-						} else {
+						if(process.platform === "win32"){
 							pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });
+						} else {
+							pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: scopePath });
 						} 
 					});
 				}
