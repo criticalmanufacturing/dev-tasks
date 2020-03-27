@@ -371,6 +371,7 @@ module.exports = function (gulpWrapper, ctx) {
         //var webserver = require('gulp-webserver');
         var stream = gulp.src(ctx.baseDir)
             .pipe(pluginWebServer({
+                host: '0.0.0.0',
                 port: pluginYargs.port,
                 livereload: false,
                 directoryListing: false,
