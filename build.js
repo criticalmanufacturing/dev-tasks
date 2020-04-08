@@ -346,7 +346,7 @@ module.exports = function (gulpWrapper, ctx) {
         var promiseToResolve = Promise.resolve(null);
         
         commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/packages\/", "gi"), replacement: '' });
-        commonRegexPatterns.push({ match: new RegExp(rootFolderName + "\/src\/", "gi"), replacement: '' });
+        commonRegexPatterns.push({ match: new RegExp('"' + rootFolderName + "\/src\/", "gi"), replacement: '"' });
 
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
