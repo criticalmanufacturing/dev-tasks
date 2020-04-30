@@ -428,6 +428,99 @@ module.exports = function (gulpWrapper, ctx) {
 		callback();
 	});
 
+	gulp.task('__updateDependencies', function (callback) {
+
+		const lockFile = pluginPath.join(ctx.baseDir, packageLockFile);
+		
+		// If there is no package-lock, just skip this step.
+		if (!fs.existsSync(lockFile)) {
+			callback();	
+		}
+
+		if (!ctx.__config || !ctx.__config.channel) {
+			gulpUtil.log(gulpUtil.colors.red("Channel version not found on metadata."), gulpUtil.colors.yellow("Skipping dependencies update."));
+			callback();
+		}
+
+		const packageLockContent = pluginfsExtra.readJSONSync(lockFile);
+
+		const packagesToIgnore = {};
+		if (packagesToLink) {
+			packagesToLink.forEach((p) => packagesToIgnore[p.name] = "");
+		}
+
+		const dependencyNameMatch = (name) => {
+			if (name.startsWith("cmf.") || name.startsWith("@criticalmanufacturing/")) {
+				return true;
+			}
+			return false;
+		};
+
+		const dependencyList = {};
+		const dependencySearch = (root) => {
+			if (root.dependencies) {
+				for (var k in root.dependencies) {
+					var newRoot = root.dependencies[k];
+					if (typeof newRoot !== "object") return;
+
+					if (!(k in dependencyList) && !(k in packagesToIgnore) && dependencyNameMatch(k)) {
+						
+						dependencyList[k] = {
+							version: newRoot.version
+						};
+
+					}
+
+					dependencySearch(newRoot);
+				}
+			}
+		};
+
+		const dependencySet = (root) => {
+			if (root.dependencies) {
+				for (var k in root.dependencies) {
+					var newRoot = root.dependencies[k];
+
+					if (typeof newRoot !== "object") return;
+
+					if (k in dependencyList) {
+						Object.assign(root.dependencies[k], dependencyList[k]);
+
+						delete root.dependencies[k].integrity;
+						delete root.dependencies[k].resolved;
+					}
+
+					dependencySet(newRoot);
+				}
+			}
+		};
+
+		dependencySearch(packageLockContent);
+
+		Object.keys(dependencyList).forEach((k) => {
+			const node = dependencyList[k];
+
+			const key = `${k}@${ctx.__config.channel}`;
+
+			if (ctx.__verbose) {
+				gulpUtil.log(gulpUtil.colors.gray("Fetching latest version for"), gulpUtil.colors.cyan(`${k}@${ctx.__config.channel}`));
+			}
+
+			const version = pluginExecuteSync(`npm show ${k}@${ctx.__config.channel} version`);
+			node.version = version.toString().trim();
+
+			if (ctx.__verbose) {
+				gulpUtil.log(gulpUtil.colors.gray("New version for"), gulpUtil.colors.cyan(`${k}@${ctx.__config.channel}`), gulpUtil.colors.gray("is"), gulpUtil.colors.yellow(node.version));
+			}
+		});
+
+		dependencySet(packageLockContent);
+
+		pluginfsExtra.writeJSONSync(lockFile, packageLockContent);
+
+		callback();
+	});
+
 	/**
 	* Installation Task
 	* Remarks: only needs to be run the first time or after a git pull
@@ -453,6 +546,10 @@ module.exports = function (gulpWrapper, ctx) {
 		// When dealing with packages and links are enabled
 		if (shouldRemoveLinksBeforeInstall) {
 			taskArray.push('__removeLinkedDependencies');
+		}
+
+		if (pluginYargs.updateDependencies) {
+			taskArray.push('__updateDependencies');
 		}
 
 		// Add tasks
