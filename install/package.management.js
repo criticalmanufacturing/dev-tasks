@@ -162,7 +162,7 @@ module.exports = function (gulpWrapper, ctx) {
 
 		// Install production in webApp
 		// Don't need dev dependencies here, just keep it small
-		if (ctx.type === "webApp") {
+		if (ctx.type === "webApp" || pluginYargs.production) {
 			command = command + " --production";
 		}
 
@@ -232,7 +232,7 @@ module.exports = function (gulpWrapper, ctx) {
 
 		// Install production in webApp
 		// Don't need dev dependencies here, just keep it small
-		if (ctx.type === "webApp") {
+		if (ctx.type === "webApp" || pluginYargs.production) {
 			command = command + " --production";
 		}
 		command += " --scripts-prepend-node-path=true";
