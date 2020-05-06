@@ -207,7 +207,7 @@ module.exports = function (gulpWrapper, ctx) {
             .src('')
             .pipe(pluginShell("\"" + zipProgram + "\" a "
                 + tempFileName +
-                ' -x!node_modules\\**\\node_modules' +
+                ' -x!node_modules/**/node_modules' +
                 ' -ir@"' + includePath + '"' +
                 ' -xr@"' + excludePath + '"' + 
                 linksFlag, { cwd: ctx.baseDir }))
