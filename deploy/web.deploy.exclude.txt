@@ -1,6 +1,6 @@
-node_modules\**\node_modules
-test\**
-**\test
+node_modules/**/node_modules
+test/**
+**/test
 tsconfig.json
 obj
 karma.conf.js
