@@ -236,7 +236,7 @@ module.exports = function (gulpWrapper, ctx) {
         var includePath = path.join(__dirname, "deploy", "web.deploy.include.txt");
         var excludePath = path.join(__dirname, "deploy", "web.deploy.exclude.txt");
 
-        var result = gulp
+        return  gulp
             .src('')
             .pipe(pluginShell(
                 "\"" + zipProgram + "\" a "
@@ -245,7 +245,6 @@ module.exports = function (gulpWrapper, ctx) {
                 ' -xr@"' + excludePath + '"' +
                 linksFlag
                 , { cwd: ctx.baseDir }));
-        return result;
     });
 
     /**
