@@ -12,6 +12,7 @@ var concat = require('gulp-concat');
 var sysBuilder = require('systemjs-builder');
 var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
+const path = require('path');
 
 module.exports = function (gulpWrapper, ctx) {
     
@@ -179,7 +180,7 @@ module.exports = function (gulpWrapper, ctx) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
 
         if (pluginYargs.moduleName) {
-            deployPath += "\\" + pluginYargs.moduleName;
+            deployPath = path.join(deployPath, pluginYargs.moduleName);
         }
 
         var tempFileName = ctx.baseDir + uuid.v4() + ".zip";
@@ -192,28 +193,30 @@ module.exports = function (gulpWrapper, ctx) {
         if (!fs.existsSync(deployPath)) {
             fs.mkdirSync(deployPath);
         } else {
-            console.log("Deleting path " + deployPath + "\\**");
-            pluginDel.sync([deployPath + "\\**", "!" + deployPath], { force: true });
+            var pathToDelete = path.join(deployPath, "**");
+            console.log("Deleting path " + pathToDelete);
+            pluginDel.sync([pathToDelete, "!" + deployPath], { force: true });
         }
 
-        gulp.src('').pipe(
-            pluginShell(
-                "\"C:\\Program Files\\7-Zip\\7z\" a "
+        var zipProgram = process.platform === "win32" ? "C:\\Program Files\\7-Zip\\7z" : "7z";
+        var linksFlag = process.platform === "win32" ? "" : " -l";
+        var includePath = path.join(__dirname, "deploy", "web.deploy.include.txt");
+        var excludePath = path.join(__dirname, "deploy", "web.deploy.exclude.txt");
+
+        gulp
+            .src('')
+            .pipe(pluginShell("\"" + zipProgram + "\" a "
                 + tempFileName +
-                //' -x!node_modules\\**\\node_modules' +
-                ' -ir@"' + __dirname + '\\deploy\\web.deploy.include.txt"' +
-                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"'
-                , { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
-            .pipe(
-                pluginShell(
-                    "\"C:\\Program Files\\7-Zip\\7z\" x "
-                    + tempFileName +
-                    //' -x!node_modules\\**\\node_modules' +
-                    ' -o' + deployPath + " -y"
-                    , { cwd: ctx.baseDir })
-            ).pipe(pluginCallback(function () {
-                pluginDel([tempFileName], cb)
-            }));
+                ' -x!node_modules\\**\\node_modules' +
+                ' -ir@"' + includePath + '"' +
+                ' -xr@"' + excludePath + '"' + 
+                linksFlag, { cwd: ctx.baseDir }))
+            .pipe(pluginShell("\"" + zipProgram + "\" x "
+                + tempFileName +
+                ' -o' + deployPath + " -y", { cwd: ctx.baseDir })).pipe(pluginCallback(function () {
+                    pluginDel([tempFileName], cb);
+                }));
+
     });
 
     gulp.task('deploy-setup', function (cb) {
@@ -228,14 +231,21 @@ module.exports = function (gulpWrapper, ctx) {
         pluginDel.sync(["config.json"]);
         fs.renameSync(tokensFile, "config.json");
 
-        return gulp.src('').pipe(
-            pluginShell(
-                "\"C:\\Program Files\\7-Zip\\7z\" a "
-                + deployPath +
-                ' -ir@"' + __dirname + '\\deploy\\web.deploy.include.txt"' +
-                ' -xr@"' + __dirname + '\\deploy\\web.deploy.exclude.txt"'
-                , { cwd: ctx.baseDir }));
+        var zipProgram = process.platform === "win32" ? "C:\\Program Files\\7-Zip\\7z" : "7z";
+        var linksFlag = process.platform === "win32" ? "" : " -l";
+        var includePath = path.join(__dirname, "deploy", "web.deploy.include.txt");
+        var excludePath = path.join(__dirname, "deploy", "web.deploy.exclude.txt");
 
+        var result = gulp
+            .src('')
+            .pipe(pluginShell(
+                "\"" + zipProgram + "\" a "
+                + deployPath +
+                ' -ir@"' + includePath + '"' +
+                ' -xr@"' + excludePath + '"' +
+                linksFlag
+                , { cwd: ctx.baseDir }));
+        return result;
     });
 
     /**
@@ -382,3 +392,4 @@ module.exports = function (gulpWrapper, ctx) {
 
 
 };
+
