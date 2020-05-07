@@ -179,12 +179,9 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('deploy', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
         var moduleName = pluginYargs.moduleName;
-
-        if (typeof deployPath !== 'string') { deployPath = deployPath.toString(); }
-        if (typeof moduleName !== 'string') { moduleName = moduleName.toString(); }
-
+        
         if (moduleName) {
-            deployPath = path.join(deployPath, moduleName);
+            deployPath += path.sep + moduleName;
         }
 
         var tempFileName = ctx.baseDir + uuid.v4() + ".zip";
@@ -197,7 +194,7 @@ module.exports = function (gulpWrapper, ctx) {
         if (!fs.existsSync(deployPath)) {
             fs.mkdirSync(deployPath);
         } else {
-            var pathToDelete = path.join(deployPath, "**");
+            var pathToDelete = deployPath + path.sep +  "**";
             console.log("Deleting path " + pathToDelete);
             pluginDel.sync([pathToDelete, "!" + deployPath], { force: true });
         }
@@ -228,11 +225,8 @@ module.exports = function (gulpWrapper, ctx) {
         var tokensFile = pluginYargs.appFileName ? pluginYargs.appFileName : "config.setup.json";
         var moduleName = pluginYargs.moduleName;
         
-        if (typeof deployPath !== 'string') { deployPath = deployPath.toString(); }
-        if (typeof moduleName !== 'string') { moduleName = moduleName.toString(); }
-
         if (moduleName) {
-            deployPath = path.join(deployPath, moduleName + ".zip");
+            deployPath += path.sep +  moduleName + ".zip";
         }
 
         // Change name
