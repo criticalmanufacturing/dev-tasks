@@ -226,9 +226,13 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('deploy-setup', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
         var tokensFile = pluginYargs.appFileName ? pluginYargs.appFileName : "config.setup.json";
+        var moduleName = pluginYargs.moduleName;
+        
+        if (typeof deployPath !== 'string') { deployPath = deployPath.toString(); }
+        if (typeof moduleName !== 'string') { moduleName = moduleName.toString(); }
 
-        if (pluginYargs.moduleName) {
-            deployPath += "\\" + pluginYargs.moduleName + ".zip";
+        if (moduleName) {
+            deployPath = path.join(deployPath, moduleName + ".zip");
         }
 
         // Change name
