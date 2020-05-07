@@ -178,9 +178,13 @@ module.exports = function (gulpWrapper, ctx) {
 
     gulp.task('deploy', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
+        var moduleName = pluginYargs.moduleName;
 
-        if (pluginYargs.moduleName) {
-            deployPath = path.join(deployPath, pluginYargs.moduleName);
+        if (typeof deployPath !== 'string') { deployPath = deployPath.toString(); }
+        if (typeof moduleName !== 'string') { moduleName = moduleName.toString(); }
+
+        if (moduleName) {
+            deployPath = path.join(deployPath, moduleName);
         }
 
         var tempFileName = ctx.baseDir + uuid.v4() + ".zip";
