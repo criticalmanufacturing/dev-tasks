@@ -1,8 +1,7 @@
 var path = require('path');
-var util = require('util');
 var fs = require("fs");
 var glob = require("glob");
- 
+
 var __cwd = path.resolve('.'); //where the process was launched from
 var __tasksdir = __dirname; //where the tools are placed
 //general task dependency plugins
@@ -677,15 +676,10 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('__build-db', function (callback) {
         if ( fs.existsSync(path.join(ctx.baseDir, "./assets/")) ) {             
-            var elasticlunr = require("elasticlunr");
+            var lunr = require("lunr");
 
-            var documentsIndex = elasticlunr(function () {
-                this.addField("id");
-                this.addField("title")
-                this.addField("text");                     
-                this.saveDocument(false);
-            });
-        
+            
+            var documentsIndexList = [];
             var documentsList = [];
 
             glob(path.join(ctx.baseDir, "./assets/**/*.md"), function (err, matches) {
@@ -718,7 +712,8 @@ module.exports = function (gulpWrapper, ctx) {
                         title: firstTitle,
                         text: fs.readFileSync(absoluteFilePath).toString()
                     };
-                    documentsIndex.addDoc(documentToIndex);
+                    
+                    documentsIndexList.push(documentToIndex);
             
                     var documentToList = {
                         id: documentToIndex.id,
@@ -728,13 +723,23 @@ module.exports = function (gulpWrapper, ctx) {
                     }
                     documentsList.push(documentToList);      
                 });
+
+                var documentsIndex = lunr(function () {
+                    this.ref("id");
+                    this.field("title")
+                    this.field("text");
+                    
+                    documentsIndexList.forEach(function (doc) {
+                        this.add(doc)
+                      }, this)
+                });
             
                 // PERSIST
                 //
                 var documentsToSave = [];
                 documentsToSave.push(documentsIndex);
                 documentsToSave.push(documentsList);
-            
+                
                 fs.writeFile(path.join(ctx.baseDir, './assets/__documentsDB.json'), JSON.stringify(documentsToSave), function (err) {
                     if (err) throw err; 
                 });
