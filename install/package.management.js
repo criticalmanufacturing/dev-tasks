@@ -380,7 +380,7 @@ module.exports = function (gulpWrapper, ctx) {
 						if(process.platform === "win32"){
 							pluginExecuteSync(`mklink /j ${packageName} "${package.path}"`, { cwd: scopePath });
 						} else {
-							pluginExecuteSync(`ln -s "${package.path}" ${package.name}`, { cwd: scopePath });
+							pluginExecuteSync(`ln -s "${package.path}" ${packageName}`, { cwd: scopePath });
 						} 
 					});
 				}
