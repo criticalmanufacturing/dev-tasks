@@ -592,7 +592,7 @@ module.exports = function (gulpWrapper, ctx) {
         }
     });
 
-        /**
+    /**
      * Package linting.
      */
     gulp.task("__lint", (callback) => {
@@ -792,17 +792,25 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('watch', function (cb) {
         gulpWrapper.seq(["__internal-watch"], cb);
     });
-
     /**
      * Internal Watch
      */
     gulp.task('__internal-watch', function (cb) {
-        var rs = require("run-sequence").use(gulp);
-        rs('build', function () {
-            gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", ['__lint', '__build-typescript']);
-            gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.less", ['__build-less']);
-            //cb();
-        });
+        var lintTask = '__lint';
+        var typescriptTask = '__build-typescript';
+        var lessTask = '__build-less'
+
+        // if the prefix is null the watch task was called from the root of the project
+        // if not null it was called from a specific context
+        if(ctx.prefix != null) {
+            // let's add the current package context
+            lintTask = ctx.packageName + '>' + lintTask;
+            typescriptTask = ctx.packageName + '>' + typescriptTask;
+            lessTask = ctx.packageName + '>' + lessTask;
+        }
+        gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.ts", [lintTask, typescriptTask], { queue: true });
+        gulp.watch(ctx.baseDir + ctx.sourceFolder + "**/*.less", [lessTask]);
+        cb();
     });
 
     gulp.task("__internal-replace-defaults-workflow-tasks", function(cb) {
