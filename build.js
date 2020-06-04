@@ -900,6 +900,7 @@ module.exports = function (gulpWrapper, ctx) {
      * Transforms i18n .ts files into .po files and save it on baseDir
      */
     gulp.task('i18n-ts2po', function() {
+        var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
         return gulp
             .src([
                 path.join(ctx.baseDir, "**/i18n/*.ts"),
@@ -918,6 +919,7 @@ module.exports = function (gulpWrapper, ctx) {
      * It uses the BaseDir to store .ts files.
      */
     gulp.task('i18n-po2ts', function() {
+        var pluginI18nTransform = require('@criticalmanufacturing/dev-i18n-transform').gulp;
         return gulp
             .src([
                 path.join(ctx.baseDir, "*.po")
