@@ -1,11 +1,11 @@
 {
   "name": "@criticalmanufacturing/dev-tasks",
-  "version": "8.0.0-15",
+  "version": "8.0.0-16",
   "description": "Gulp tasks and helpers for development",
   "main": "main.js",
   "dependencies": {
-    "@angular/compiler": "7.2.3",
-    "@angular/core": "7.2.3",
+    "@angular/compiler": "9.1.9",
+    "@angular/core": "9.1.9",
     "async-walker": "~0.0.4",
     "clean-css": "~4.2.1",
     "codelyzer": "^4.5.0",
