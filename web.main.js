@@ -14,15 +14,21 @@ var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
 const path = require('path');
 
+var i18n = {
+    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL"],
+    startupCulture: "en-US",
+    startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
+}
+
 module.exports = function (gulpWrapper, ctx) {
-    
+
     var bundlePath = ctx.bundlePath ? ctx.bundlePath : "bundles";
 
-    if(bundlePath[0] !== "/") {
+    if (bundlePath[0] !== "/") {
         bundlePath = "/" + bundlePath;
     }
- 
-    if(bundlePath[bundlePath.length - 1] !== "/") {
+
+    if (bundlePath[bundlePath.length - 1] !== "/") {
         bundlePath = bundlePath + "/";
     }
 
@@ -49,18 +55,74 @@ module.exports = function (gulpWrapper, ctx) {
         }
         return result;
     }
-	function setPathsDynamic(paths, baseDir) {
-		if (paths && paths.length > 0) {
-			paths.forEach(function(part, index, array) {
-				array[index] = `${baseDir}${array[index]}`;
-			});
-		}
-		return paths;
-	}
+    function setPathsDynamic(paths, baseDir) {
+        if (paths && paths.length > 0) {
+            paths.forEach(function (part, index, array) {
+                array[index] = `${baseDir}${array[index]}`;
+            });
+        }
+        return paths;
+    }
+
     /**
      * Create bundles as was configured in gulp file
      */
     gulp.task('_bundle-app', function (cb) {
+        if (pluginYargs.production === true) {
+            const ctxPackages = [...ctx.__config.packages, ...(ctx.__config.dependencyPackages || [])];
+
+            if (ctx.isBundleBuilderOn === true && ctx.isMetadataBundlerOn === true) {
+                const ctxPackagesBundleConfig = {
+                    bundlesConfiguration: [{
+                        bundleName: "cmf.metadata.js",
+                        bundlePaths: ctxPackages.map((package) => `${ctx.libsFolder}${package}/src/${package}.metadata-debug.js`)
+                    }]
+                };
+
+                const metadataBundleConfig = ctx.bundleBuilderConfigFiles.find((bundleBuilderConfigFile) =>
+                    bundleBuilderConfigFile.bundleName === "cmf.metadata.js");
+
+                if (metadataBundleConfig != null) {
+                    if (metadataBundleConfig.bundleConfigs == null) {
+                        metadataBundleConfig.bundleConfigs = [];
+                    }
+                    metadataBundleConfig.bundleConfigs.push(ctxPackagesBundleConfig);
+                } else {
+                    ctx.bundleBuilderConfigFiles.push({
+                        bundleName: "cmf.metadata.js",
+                        bundleConfigs: [ctxPackagesBundleConfig],
+                        bundleMinify: true
+                    });
+                }
+            }
+
+            if (ctx.isBundleBuilderOn === true && ctx.isi18nBundlerOn === true) {
+                i18n.supportedCultures.forEach((culture) => {
+                    const ctxi18nBundleConfig = {
+                        bundlesConfiguration: [{
+                            bundleName: `cmf.main.${culture}.js`,
+                            bundlePaths: ctxPackages.map((package) => `${ctx.libsFolder}${package}/src/i18n/main.${culture}.bundle-debug.js`)
+                        }]
+                    };
+
+                    const i18nBundleConfig = ctx.bundleBuilderConfigFiles.find((bundleBuilderConfigFile) =>
+                        bundleBuilderConfigFile.bundleName === `cmf.main.${culture}.js`);
+
+                    if (i18nBundleConfig != null) {
+                        if (i18nBundleConfig.bundleConfigs == null) {
+                            i18nBundleConfig.bundleConfigs = [];
+                        }
+                        i18nBundleConfig.bundleConfigs.push(ctxi18nBundleConfig);
+                    } else {
+                        ctx.bundleBuilderConfigFiles.push({
+                            bundleName: `cmf.main.${culture}.js`,
+                            bundleConfigs: [ctxi18nBundleConfig],
+                            bundleMinify: true
+                        });
+                    }
+                });
+            }
+        }
 
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
             ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
@@ -75,21 +137,23 @@ module.exports = function (gulpWrapper, ctx) {
                     // Concatenate files expressions
                     var currentExpressions = [];
                     var paths = [];
-                    bundleElement.bundleConfigs.forEach(file => {
-                        var buConfig = require(ctx.baseDir + file);
+
+                    bundleElement.bundleConfigs.forEach(config => {
+                        var buConfig = typeof config === 'string' ? require(ctx.baseDir + config) : config;
+
                         if (buConfig && buConfig.bundlesConfiguration && buConfig.bundlesConfiguration.length > 0) {
                             var bundleConfig = buConfig.bundlesConfiguration.find(obj => obj.bundleName == bundleElement.bundleName);
                             if (bundleConfig && bundleConfig.bundleExpressions && bundleConfig.bundleExpressions.length > 0) {
                                 currentExpressions.push(bundleConfig.bundleExpressions);
                             }
                             if (bundleConfig && bundleConfig.bundlePaths && bundleConfig.bundlePaths.length > 0) {
-                                paths = paths.concat(bundleConfig.bundlePaths)
+                                paths = paths.concat(bundleConfig.bundlePaths);
                             }
                         }
                     });
-					
-					paths = setPathsDynamic(paths, ctx.baseDir);
-					
+
+                    paths = setPathsDynamic(paths, ctx.baseDir);
+
                     // JS Files
                     if (fileExtension && fileExtension.endsWith('js')) {
                         if (currentExpressions && currentExpressions.length > 0) {
@@ -151,7 +215,7 @@ module.exports = function (gulpWrapper, ctx) {
                             }
                         }
                     });
-					paths = setPathsDynamic(paths, ctx.baseDir);
+                    paths = setPathsDynamic(paths, ctx.baseDir);
                     return gulp.src(paths)
                         .pipe(gulp.dest(`${ctx.baseDir}/${bundleElement.bundleDestPath}`));
                 }
@@ -164,8 +228,8 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('build', function (cb) {
         var tasks = ['_build'];
-        if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true) {    
-			tasks = tasks.concat(['_bundle-app']);
+        if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true) {
+            tasks = tasks.concat(['_bundle-app']);
         }
         return pluginRunSequence(tasks, cb);
     });
@@ -179,7 +243,7 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('deploy', function (cb) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
         var moduleName = pluginYargs.moduleName;
-        
+
         if (moduleName) {
             deployPath += path.sep + moduleName;
         }
@@ -194,7 +258,7 @@ module.exports = function (gulpWrapper, ctx) {
         if (!fs.existsSync(deployPath)) {
             fs.mkdirSync(deployPath);
         } else {
-            var pathToDelete = deployPath + path.sep +  "**";
+            var pathToDelete = deployPath + path.sep + "**";
             console.log("Deleting path " + pathToDelete);
             pluginDel.sync([pathToDelete, "!" + deployPath], { force: true });
         }
@@ -210,7 +274,7 @@ module.exports = function (gulpWrapper, ctx) {
                 + tempFileName +
                 ' -x!node_modules/**/node_modules' +
                 ' -ir@"' + includePath + '"' +
-                ' -xr@"' + excludePath + '"' + 
+                ' -xr@"' + excludePath + '"' +
                 linksFlag, { cwd: ctx.baseDir }))
             .pipe(pluginShell("\"" + zipProgram + "\" x "
                 + tempFileName +
@@ -224,9 +288,9 @@ module.exports = function (gulpWrapper, ctx) {
         var deployPath = pluginYargs.path ? pluginYargs.path : process.env.BUILD_ARTIFACTSTAGINGDIRECTORY;
         var tokensFile = pluginYargs.appFileName ? pluginYargs.appFileName : "config.setup.json";
         var moduleName = pluginYargs.moduleName;
-        
+
         if (moduleName) {
-            deployPath += path.sep +  moduleName + ".zip";
+            deployPath += path.sep + moduleName + ".zip";
         }
 
         // Change name
@@ -238,7 +302,7 @@ module.exports = function (gulpWrapper, ctx) {
         var includePath = path.join(__dirname, "deploy", "web.deploy.include.txt");
         var excludePath = path.join(__dirname, "deploy", "web.deploy.exclude.txt");
 
-        return  gulp
+        return gulp
             .src('')
             .pipe(pluginShell(
                 "\"" + zipProgram + "\" a "
@@ -370,8 +434,6 @@ module.exports = function (gulpWrapper, ctx) {
             }));
     });
 
-
-
     gulp.task('start-bundle-mode', function () {
 
         if (pluginYargs.port === undefined) {
@@ -390,7 +452,4 @@ module.exports = function (gulpWrapper, ctx) {
                 fallback: 'index.html'
             }));
     });
-
-
 };
-
