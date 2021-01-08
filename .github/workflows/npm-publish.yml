@@ -4,9 +4,12 @@
 name: Node.js Package
 
 on:
-  release:
-    types: [published]
-
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Main tag to publish'
+      additionalTag1:
+        description: 'Other tag to add 1' 
 jobs:
 
   build-and-publish:
@@ -19,6 +22,8 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm install
       - run: npm shrinkwrap
-      - run: npm publish
+      - run: npm publish --tag ${{ github.event.inputs.tag }}
+      - run: npm dist-tag add @criticalmanufacturing/dev-tasks:${{github.event.inputs.tag}}
+        if: ${{github.event.inputs.additionalTag1 != github.event.inputs.additionalTag1.default}}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
