@@ -23,7 +23,9 @@ jobs:
       - run: npm install
       - run: npm shrinkwrap
       - run: npm publish --tag ${{ github.event.inputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm dist-tag add @criticalmanufacturing/dev-tasks:${{github.event.inputs.tag}}
         if: ${{github.event.inputs.additionalTag1 != github.event.inputs.additionalTag1.default}}
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
