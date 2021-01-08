@@ -12,20 +12,30 @@ var pluginExecSync = require('child_process').execSync;
 
 module.exports = function (gulp, ctx) {
     var gulpWrapper = require('./gulp.wrappers.js')(gulp, ctx);
+
+    // i18n Configuration
+    if (!ctx.__i18n) {
+        ctx.__i18n = {
+            supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL"],
+            startupCulture: "en-US",
+            startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
+        };
+    }
+
     ctx["__CONSTANTS"] = __CONSTANTS;
 
     // Read some properties
-    if(!("__verbose" in ctx)) {
+    if (!("__verbose" in ctx)) {
         ctx["__verbose"] = pluginArgs.d || pluginArgs.debug || pluginArgs.verbose;
     }
 
-	// Repository root is a context variable almost always unnecessary.
+    // Repository root is a context variable almost always unnecessary.
     // For that reason is here defined as a getter instead of directly calculating its
     if (!("__repositoryRoot" in ctx)) {
         Object.defineProperty(ctx, "__repositoryRoot", {
             configurable: true,
             enumerable: true,
-            get: function(){
+            get: function () {
                 return path.normalize(path.join(__dirname, "../../.."));
             }
         });
@@ -36,7 +46,7 @@ module.exports = function (gulp, ctx) {
     Object.defineProperty(ctx, "__projectName", {
         configurable: true,
         enumerable: true,
-        get: function(){
+        get: function () {
             var currentProjectPackageFile = utils.fs.tryGetJSONSync(path.normalize(path.join(ctx.__repositoryRoot, "./package.json")));
             return currentProjectPackageFile ? currentProjectPackageFile.name : "Custom";
         }
@@ -48,16 +58,16 @@ module.exports = function (gulp, ctx) {
         var configFilePath = path.join(ctx.__repositoryRoot, '.dev-tasks.json');
         try {
             ctx.__config = require(configFilePath);
-        } catch(error) {
+        } catch (error) {
             pluginUtil.log(pluginUtil.colors.yellow("Unable to find '.dev-tasks'. Continuing..."));
             ctx.__config = {};
         }
     }
 
-	Object.defineProperty(ctx.__config, "__npm", {
+    Object.defineProperty(ctx.__config, "__npm", {
         configurable: true,
         enumerable: true,
-        get: function(){
+        get: function () {
             return ctx.__config.npm ? path.resolve(path.join(ctx.__repositoryRoot, ctx.__config.npm)) : null;
         }
     });
@@ -68,8 +78,8 @@ module.exports = function (gulp, ctx) {
     }
 
     ctx.isCustomized = ctx.packagePrefix !== "cmf.core" && ctx.packagePrefix !== "cmf.mes";
-    if (gulp == null) {return;}
-	
+    if (gulp == null) { return; }
+
     // Load metadata file
     ctx.metadataFileName = ctx.metadataFileName || ".cmf-dev-tasks.cmf";
     ctx.metadata = ctx.metadata || utils.fs.tryGetJSONSync(ctx.baseDir + '\\' + ctx.metadataFileName);
@@ -95,8 +105,8 @@ module.exports = function (gulp, ctx) {
             seq: gulpWrapper.seq,
             exec: pluginExec,
             build: buildTasksFunction.plugins,
-			webserver: pluginWebServer,
-			yargs: require('yargs'),
+            webserver: pluginWebServer,
+            yargs: require('yargs'),
             gulpWrapper: gulpWrapper
         },
         tasks: {

@@ -14,12 +14,6 @@ var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
 const path = require('path');
 
-var i18n = {
-    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL"],
-    startupCulture: "en-US",
-    startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
-}
-
 module.exports = function (gulpWrapper, ctx) {
 
     var bundlePath = ctx.bundlePath ? ctx.bundlePath : "bundles";
@@ -97,7 +91,7 @@ module.exports = function (gulpWrapper, ctx) {
             }
 
             if (ctx.isBundleBuilderOn === true && ctx.isi18nBundlerOn === true) {
-                i18n.supportedCultures.forEach((culture) => {
+                ctx.__i18n.supportedCultures.forEach((culture) => {
                     const ctxi18nBundleConfig = {
                         bundlesConfiguration: [{
                             bundleName: `cmf.main.${culture}.js`,

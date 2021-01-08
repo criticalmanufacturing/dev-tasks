@@ -43,12 +43,6 @@ var i18nPathRegExp = /.*\/?i18n\/([^_].*)\.(.*)/;
 var excludeNodeModulesRegExp = { match: new RegExp("System\\.register\\(\"node_modules\/[\\s\\S]*?System\\.register\\(\"src\\/", "g"), replacement: function (match) { return 'System.register("src/'; } };
 var excludeNodeModulesDepRegExp = { match: new RegExp("node_modules\/", 'g'), replacement: "" };
 
-var i18n = {
-    supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL"],
-    startupCulture: "en-US",
-    startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
-}
-
 if (!String.prototype.startsWith) {
     String.prototype.startsWith = function(searchString, position){
       position = position || 0;
@@ -393,16 +387,16 @@ module.exports = function (gulpWrapper, ctx) {
 
                 function setFinalLanguage(language) {
                     finalLanguage = language;
-                    if (language === i18n.startupCulture) {
-                        language = i18n.startupCultureSuffix;
+                    if (language === ctx.__i18n.startupCulture) {
+                        language = ctx.__i18n.startupCultureSuffix;
                     }   
                     return language;                      
                 }
 
                 new Promise(function (resolve, reject) {   
-                    i18n.supportedCultures.forEach(function (language) {     
+                    ctx.__i18n.supportedCultures.forEach(function (language) {     
                         language = setFinalLanguage(language);                        
-                        suffix = (language !== i18n.startupCultureSuffix) ? language.split("-").join("\-") : "";
+                        suffix = (language !== ctx.__i18n.startupCultureSuffix) ? language.split("-").join("\-") : "";
                         customFileFilter = function(filename) { return filename.indexOf("i18n") >= 0 && filename.endsWith(language + ".ts");  }                        
                          // Let's create a temporary index file for each language. With an index file we will not need so much regex which can be error prone                        
                          promiseArray.push(createIndexFile(ctx.packageName + "-" + language + "-index.ts", ctx.baseDir + "\/..", customFileFilter));
@@ -413,7 +407,7 @@ module.exports = function (gulpWrapper, ctx) {
                         .then(function() {
                             // After all index files are generated, we transpile each language
                             promiseArray = [];
-                            i18n.supportedCultures.forEach(function (language) {                    
+                            ctx.__i18n.supportedCultures.forEach(function (language) {                    
                                 var language = setFinalLanguage(language);                        
                                 var tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
                                     // Remove explicitly declared typings.
@@ -440,7 +434,7 @@ module.exports = function (gulpWrapper, ctx) {
                                     }))
                                     .pipe(pluginReplace({
                                         patterns: [
-                                            { match: new RegExp("System\\.register\\(\"([^\"]*)(i18n\/\\w+)(\.default)\"", 'gi'), replacement: "System.register(\"$1$2." + i18n.startupCulture + "\"" }
+                                            { match: new RegExp("System\\.register\\(\"([^\"]*)(i18n\/\\w+)(\.default)\"", 'gi'), replacement: "System.register(\"$1$2." + ctx.__i18n.startupCulture + "\"" }
                                         ]
                                     }))
                                     .pipe(pluginMinify({
@@ -829,7 +823,7 @@ module.exports = function (gulpWrapper, ctx) {
                 return file.endsWith("default.js") && path.relative("i18n", file);
             })
             .forEach(function(defaultFile) {
-                var startupCultureFile = defaultFile.replace("default", i18n.startupCulture);
+                var startupCultureFile = defaultFile.replace("default", ctx.__i18n.startupCulture);
                 if (!fs.existsSync(startupCultureFile)) {
                     var contentToCopy = fs.readFileSync(defaultFile);
                     fs.writeFileSync(startupCultureFile, contentToCopy);
@@ -866,7 +860,7 @@ module.exports = function (gulpWrapper, ctx) {
 
         defaults.forEach(i18nBlock => {
             //filter the default culture, which is created from the default files while compiling
-            i18n.supportedCultures.filter(culture => culture != "en-US").forEach(culture => {
+            ctx.__i18n.supportedCultures.filter(culture => culture != "en-US").forEach(culture => {
                 var i18nCultureFile = path.join(folder, [i18nBlock, culture, "ts"].join("."));
                 if (!fs.existsSync(i18nCultureFile)) {
                     pluginUtil.log(`Creating file ${i18nCultureFile} for culture ${culture}`);
@@ -914,7 +908,7 @@ module.exports = function (gulpWrapper, ctx) {
             ], { cwd: ctx.baseDir })
             .pipe(pluginI18nTransform({
                 base: ctx.baseDir,
-                languages: i18n.supportedCultures,
+                languages: ctx.__i18n.supportedCultures,
                 dest: "pot"
             }))
             .pipe(gulp.dest(ctx.baseDir));
@@ -932,7 +926,7 @@ module.exports = function (gulpWrapper, ctx) {
             ], { cwd: ctx.baseDir })
             .pipe(pluginI18nTransform({
                 base: ctx.baseDir,
-                languages: i18n.supportedCultures,
+                languages: ctx.__i18n.supportedCultures,
                 dest: "ts"
             }))
             .pipe(gulp.dest(ctx.baseDir));
