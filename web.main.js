@@ -63,7 +63,7 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('_bundle-app', function (cb) {
         if (pluginYargs.production === true) {
-            const ctxPackages = [...ctx.__config.packages, ...(ctx.__config.dependencyPackages || [])];
+            const ctxPackages = ctx.availablePackages || [];
 
             if (ctx.isBundleBuilderOn === true && ctx.isMetadataBundlerOn === true) {
                 const ctxPackagesBundleConfig = {
