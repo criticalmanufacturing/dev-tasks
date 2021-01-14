@@ -13,6 +13,7 @@ var sysBuilder = require('systemjs-builder');
 var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
 const path = require('path');
+var pluginUtil = require('gulp-util');
 
 module.exports = function (gulpWrapper, ctx) {
 
@@ -64,6 +65,7 @@ module.exports = function (gulpWrapper, ctx) {
     gulp.task('_bundle-app', function (cb) {
         if (pluginYargs.production === true) {
             const ctxPackages = ctx.availablePackages || [];
+            ctx.bundleBuilderConfigFiles = ctx.bundleBuilderConfigFiles || [];
 
             if (ctx.isBundleBuilderOn === true && ctx.isMetadataBundlerOn === true) {
                 const ctxPackagesBundleConfig = {
@@ -118,12 +120,15 @@ module.exports = function (gulpWrapper, ctx) {
             }
         }
 
-        if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true &&
-            ctx.bundleBuilderInitialConfig && ctx.bundleBuilderInitialConfig
-            && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
+        if (ctx.isBundleBuilderOn === true && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
             var sysBuilderDefaultDir = `apps/${ctx.packageName}`;
             var sysBuilderBaseDir = process.cwd().includes(ctx.packageName) ? '' : sysBuilderDefaultDir;
-            var builder = new sysBuilder(sysBuilderBaseDir, ctx.baseDir + ctx.bundleBuilderInitialConfig);
+            var builder;
+
+            if (ctx.bundleBuilderInitialConfig) {
+                builder = new sysBuilder(sysBuilderBaseDir, ctx.baseDir + ctx.bundleBuilderInitialConfig);
+            }
+
             ctx.bundleBuilderConfigFiles.forEach(bundleElement => {
                 var fileExtension = bundleElement.bundleName.split('.').pop().toLowerCase();
                 var toMinify = bundleElement.bundleMinify === undefined ? true : bundleElement.bundleMinify;
@@ -145,6 +150,11 @@ module.exports = function (gulpWrapper, ctx) {
                             }
                         }
                     });
+
+                    if (builder == null && currentExpressions.length > 0) {
+                        pluginUtil.log(pluginUtil.colors.yellow(`Skiping bundle file '${bundleElement.bundleName}' because 'bundleBuilderInitialConfig' is not defined in the current context.`));
+                        return;
+                    }
 
                     paths = setPathsDynamic(paths, ctx.baseDir);
 
