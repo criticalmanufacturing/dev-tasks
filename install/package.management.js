@@ -235,7 +235,7 @@ module.exports = function (gulpWrapper, ctx) {
 		if (ctx.type === "webApp" || pluginYargs.production) {
 			command = command + " --production";
 		}
-		command += " --scripts-prepend-node-path=true";
+		command += ` --loglevel=${pluginYargs.loglevel || 'error'} --scripts-prepend-node-path=true`;
 		/** 
 		 * If we are running a npm install then it is necessary to dedupe
 		 * So we add the 'npm dedupe' to the npm install command
@@ -245,12 +245,16 @@ module.exports = function (gulpWrapper, ctx) {
 		}
 
 		try {
-			pluginExecute(command, { cwd: ctx.baseDir }, function (error, stdout, stderr) {
+			const child = pluginExecute(command, { cwd: ctx.baseDir }, function (error) {
 				if (error instanceof Error) {
-					console.error(stderr);
+					console.error(gulpUtil.colors.white.bgRed(">>>> FAILED: ") +
+						gulpUtil.colors.black.bgRed(command)); // this line triggers the failure of the build step
 				}
 				callback();
 			});
+			// we are effectively redirecting stderr to stdout here. This allows us to print e.g. warnings without breaking a build
+			child.stdout.on('data', data => gulpUtil.log(data.trim())); // we need to trim to avoid double LF
+			child.stderr.on('data', data => gulpUtil.log(gulpUtil.colors.red(data.trim())));
 		} catch (ex) {
 			console.error(ex);
 			callback();
