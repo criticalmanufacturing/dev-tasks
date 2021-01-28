@@ -501,7 +501,7 @@ module.exports = function (gulpWrapper, ctx) {
                 .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
                 .pipe(replaceModuleMetadata(ctx, widgetPathRegExp, "widgets", false))
                 .pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
-                .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converter", false))
+                .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converters", false))
                 .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))
                 .pipe(replaceModuleMetadata(ctx, i18nPathRegExp, "i18n", false, "/**/i18n/*.default.ts"))
                 .pipe(tsProject()).on('error', function (err) { cb(err); }).js
