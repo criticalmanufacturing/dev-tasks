@@ -26,7 +26,7 @@ var TSLint = require("tslint");
 var cssmin = require('gulp-clean-css');
 var concat = require('gulp-concat');
 var utils = require('./utils.js');
-								   
+
 
 //module specific plugins
 var pluginLess = require('gulp-less');
@@ -39,7 +39,7 @@ var widgetPathRegExp = /.*\/?widgets\/([^\/\\]+)\/([^_].*)\.(.*)/;
 var dataSourcePathRegExp = /.*\/?dataSources\/([^\/\\]+)\/([^_].*)\.(.*)/;
 var converterPathRegExp = /.*\/?converters\/([^\/\\]+)\/([^_].*)\.(.*)/;
 var foldersToInspect = ["components", "directives", "pipes", "widgets", "dataSources", "converters"];
-var i18nPathRegExp = /.*\/?i18n\/([^_].*)\.(.*)/;
+var i18nPathRegExp = /(.+\/i18n\/[^_].*)\.default\..*/;
 var excludeNodeModulesRegExp = { match: new RegExp("System\\.register\\(\"node_modules\/[\\s\\S]*?System\\.register\\(\"src\\/", "g"), replacement: function (match) { return 'System.register("src/'; } };
 var excludeNodeModulesDepRegExp = { match: new RegExp("node_modules\/", 'g'), replacement: "" };
 
@@ -244,16 +244,15 @@ module.exports = function (gulpWrapper, ctx) {
     /**
     * Checks for a folder and injects all folders found in the stream
     */
-    function replaceModuleMetadata(ctx, folderPathRegExp, folder, needsToInsertComma) {
+   function replaceModuleMetadata(ctx, folderPathRegExp, folder, needsToInsertComma, path) {
         var accountedFolder = [];
         return pluginInject(
-            gulp.src(ctx.baseDir + ctx.sourceFolder + '/' + folder + '/**/*.ts', { read: false }),
+            gulp.src(ctx.baseDir + ctx.sourceFolder + (path || '/' + folder + '/**/*.ts'), { read: false }),
             {
                 relative: true,
-                starttag: "// inject:" + folder,                
-                endtag: "// endinject:" + folder,               
+                starttag: "// inject:" + folder,
+                endtag: "// endinject:" + folder,
                 transform: function (filepath, file, i, length) {
-
                     var match = folderPathRegExp.exec(filepath);
 
                     if (match != null && match.length > 1) {
@@ -264,13 +263,13 @@ module.exports = function (gulpWrapper, ctx) {
                             accountedFolder.push(folderName);
                             return valueToInsert;
                         }
-                    }else {
+                    } else {
                         return "";
                     }
                 }
             }
         );
-    }    
+    }
 
     //#endregion
 
@@ -480,16 +479,16 @@ module.exports = function (gulpWrapper, ctx) {
     /**
     * Transpiles and injects all component, directives, ... metadata according to the package structure
     */
-    gulp.task('__build-and-bundle-metadata', function (cb) {                        
-        return new Promise(function (resolve, reject) {   
+    gulp.task('__build-and-bundle-metadata', function (cb) {
+        return new Promise(function (resolve, reject) {
             // We will keep the module anonymous as it is fetched by the app by the module loader and this way the file can be used for both DEV + PROD :-)
             var tsProject = pluginTypescript.createProject(ctx.baseDir + 'tsconfig.json', {
                 // Remove explicitly declared typings.
                 // From TS version 3.2.0 onwards, the compiler complained about it
                 // For metadata and i18n
                 "types": undefined,
-                "typescript": require("typescript") ,
-                outFile: ctx.packageName + ".metadata.js"                      
+                "typescript": require("typescript"),
+                outFile: ctx.packageName + ".metadata.js"
             });
             var additionalPatterns = [];
             additionalPatterns.push({ match: new RegExp("\"" + ctx.packageName + ".metadata\"", "g"), replacement: "\"" + ctx.packageName + "/src/" + ctx.packageName + ".metadata\""  });
@@ -497,38 +496,37 @@ module.exports = function (gulpWrapper, ctx) {
             additionalPatterns.push({ match: new RegExp("\/packages\/" + ctx.packageName, "gi"), replacement: ctx.packageName });
             const pjson = require(ctx.baseDir + "package.json");
 
-            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })                        
-            .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
-            .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
-            .pipe(replaceModuleMetadata(ctx, widgetPathRegExp, "widgets", false))
-			.pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
-            .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converters", false))
-            .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))     
-            .pipe(tsProject()).on('error', function (err) { cb(err); }).js
-            .pipe(pluginReplace({
-                 // update path for i18n
-                patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
-            })).pipe(pluginReplace({
-                patterns: [
-                  {
-                    match: /version: "",/,
-                    replacement: 'version: "' + pjson.version + '",'
-                  }
-                ]
-            }))
-            .pipe(pluginReplace(excludei18nAndMetadata()))
-            .pipe(pluginReplace({ patterns: commonRegexPatterns, preserveOrder: true})) 
-            .pipe(pluginReplace({
-                patterns: additionalPatterns
-            }))
-            .pipe(pluginMinify({
-                ext: {
-                    src: '-debug.js',
-                    min: '.js'
-                }
-            }))
-            .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder))
-            .on('end', resolve);
+            gulp.src([ctx.baseDir + ctx.sourceFolder + ctx.packageName + ".metadata.ts"], { cwd: ctx.baseDir })
+                .pipe(replaceModuleMetadata(ctx, componentPathRegExp, "components", false))
+                .pipe(replaceModuleMetadata(ctx, directivePathRegExp, "directives", false))
+                .pipe(replaceModuleMetadata(ctx, widgetPathRegExp, "widgets", false))
+                .pipe(replaceModuleMetadata(ctx, dataSourcePathRegExp, "dataSources", false))
+                .pipe(replaceModuleMetadata(ctx, converterPathRegExp, "converter", false))
+                .pipe(replaceModuleMetadata(ctx, pipePathRegExp, "pipes", false))
+                .pipe(replaceModuleMetadata(ctx, i18nPathRegExp, "i18n", false, "/**/i18n/*.default.ts"))
+                .pipe(tsProject()).on('error', function (err) { cb(err); }).js
+                .pipe(pluginReplace({
+                    // update path for i18n
+                    patterns: [{ match: new RegExp("\"\\.\/i18n\/", "g"), replacement: "\"" + ctx.packageName + "/src/i18n/" }]
+                })).pipe(pluginReplace({
+                    patterns: [
+                        {
+                            match: /version: "",/,
+                            replacement: 'version: "' + pjson.version + '",'
+                        }
+                    ]
+                }))
+                .pipe(pluginReplace(excludei18nAndMetadata()))
+                .pipe(pluginReplace({ patterns: commonRegexPatterns, preserveOrder: true }))
+                .pipe(pluginReplace({ atterns: additionalPatterns }))
+                .pipe(pluginMinify({
+                    ext: {
+                        src: '-debug.js',
+                        min: '.js'
+                    }
+                }))
+                .pipe(gulp.dest(ctx.baseDir + ctx.deployFolder))
+                .on('end', resolve);
         });
     });
 
