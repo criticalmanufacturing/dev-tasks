@@ -62,7 +62,7 @@ module.exports = function (gulpWrapper, ctx) {
 	
     var rootFolderName = ctx.__repositoryRoot.replace(/\\/g, '/').split('/').pop();
 
-    var typescriptCompilerPath = utils.dependencies.lookupNodeModule("typescript") + "/bin/tsc";
+    var typescriptCompilerPath = (ctx.typescriptPath || utils.dependencies.lookupNodeModule("typescript")) + "/bin/tsc";
     var tslintPath = utils.dependencies.lookupNodeModule("tslint") + "/bin/tslint";
 
     var includePackagePrefix = { match: new RegExp("\"src\/[^\"]", 'g'), replacement: function (match) { return match.slice(0, 1) + ctx.packageName + "/" + match.slice(1); } };    
