@@ -751,7 +751,11 @@ module.exports = function (gulpWrapper, ctx) {
             '__lint',
             '__build-less'
         ];
+        var strictCheckMode = pluginYargs.strict || (this.flags != null && this.flags.strict != null);
         if (ctx.type === "documentation") {
+            if (strictCheckMode) {
+                developmentTasks.push("__check-md-links");
+            }
             developmentTasks.push("__build-db");
         }
         if (pluginYargs.production || ctx.type === "dependency") {
@@ -763,6 +767,9 @@ module.exports = function (gulpWrapper, ctx) {
                 '__build-and-bundle-metadata',		
             ];
             if (ctx.type === "documentation") {
+                if (strictCheckMode) {
+                    tasksToExecute.push("__check-md-links");
+                }
                 tasksToExecute.push("__build-db");
             }
             if (pluginYargs.dist) {
@@ -842,6 +849,93 @@ module.exports = function (gulpWrapper, ctx) {
         })).pipe(gulp.dest(ctx.baseDir + ctx.sourceFolder));
 
     });
+
+    gulp.task('__check-md-links', function (callback) {
+        // get all assets for the current base dir
+        if (fs.existsSync(path.join(ctx.baseDir, "./assets/"))) {
+            let fail = false;
+            let failedFiles = {};
+            glob(path.join(ctx.baseDir, "./assets/**/*.md"), function(err, mdFiles) {
+                const dirFileNames = {};
+                // for each md, check for links
+                mdFiles.forEach(function (mdFile) {
+                    const regex = new RegExp("\\[[^\\[\\]]+\\]: ?([^\\[\\]]+)", "g");
+                    // const regex = new RegExp("^\\[.*\\]:(.*)$", "gm");
+                    const fileContent = fs.readFileSync(mdFile).toString();
+                    let match = regex.exec(fileContent);
+                    while (match != null) {
+                        // for each link, check if the asset exists and case matches
+                        const link = match[1].trim();
+                        if (link.indexOf(' ') === -1) {
+                            const linkPath = path.join(path.dirname(mdFile),
+                                link.startsWith(".") || link.startsWith("/") ? link : `./${link}`);
+    
+                            // check if asset exists
+                            if (!fs.existsSync(linkPath)) {
+                                // asset doesn't exist, error
+                                const indexNotExists = mdFile + linkPath;
+                                if (failedFiles[indexNotExists] == null) {
+                                    failedFiles[indexNotExists] = indexNotExists;
+                                    console.warn(`MD File "${mdFile}" link "${link}" doesn't exist"`);
+                                }
+                            } else {
+                                // check if we have already read this dir before
+                                const linkDirName = path.dirname(linkPath);
+                                let linkDirFileNamesObj = dirFileNames[linkDirName];
+                                let linkDirFileNames, linkDirFileNamesUpperCase;
+                                // if not, cache it
+                                if (linkDirFileNamesObj == null) {
+                                    linkDirFileNames = fs.readdirSync(linkDirName);
+                                    linkDirFileNamesUpperCase = linkDirFileNames.map(f => f.toUpperCase());
+                                    dirFileNames[linkDirName] = {
+                                        linkDirFileNames: linkDirFileNames,
+                                        linkDirFileNamesUpperCase: linkDirFileNamesUpperCase
+                                    };
+                                } else {
+                                    linkDirFileNames = linkDirFileNamesObj.linkDirFileNames;
+                                    linkDirFileNamesUpperCase = linkDirFileNamesObj.linkDirFileNamesUpperCase;
+                                }
+    
+                                // check if link matches with the actual file in the dir
+                                const linkFileName = path.basename(linkPath);
+                                const linkFileNameUpperCase = linkFileName.toUpperCase();
+                                let linkDirfileName;
+                                for (let i = 0; i < linkDirFileNames.length; i++) {
+                                    linkDirfileName = linkDirFileNames[i];
+                                    if (linkDirfileName === linkFileName) {
+                                        // match, break look
+                                        break;
+                                    } else if (linkFileNameUpperCase === linkDirFileNamesUpperCase[i]) {
+                                        // check if match ignoring case
+                                        // if so, use that to warn the user
+                                        const index = mdFile + linkFileName;
+                                        if (failedFiles[index] == null) {
+                                            failedFiles[index] = true;
+                                            console.error(`MD File "${mdFile}" link "${linkFileName}" doesn't match in case with the file "${linkDirfileName}"`);
+                                        }
+    
+                                        // set fail to true and break loop
+                                        fail = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // match again
+                        match = regex.exec(fileContent);
+                    }
+                });
+    
+                if (fail) {
+                    throw new Error("Errors found while validation MD files");
+                }
+            });
+        }
+    
+        callback();
+    });
+
     //#endregion
 
     //#region Generators: i18n
