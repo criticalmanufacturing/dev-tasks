@@ -751,8 +751,9 @@ module.exports = function (gulpWrapper, ctx) {
             '__lint',
             '__build-less'
         ];
+        var strictCheckMode = pluginYargs.strict || (this.flags != null && this.flags.strict != null);
         if (ctx.type === "documentation") {
-            if (pluginYargs.strict) {
+            if (strictCheckMode) {
                 developmentTasks.push("__check-md-links");
             }
             developmentTasks.push("__build-db");
@@ -766,7 +767,7 @@ module.exports = function (gulpWrapper, ctx) {
                 '__build-and-bundle-metadata',		
             ];
             if (ctx.type === "documentation") {
-                if (pluginYargs.strict) {
+                if (strictCheckMode) {
                     tasksToExecute.push("__check-md-links");
                 }
                 tasksToExecute.push("__build-db");
