@@ -343,7 +343,7 @@ module.exports = function (gulpWrapper, ctx) {
         promiseToResolve.then(function(tsConfigName) {
             tsConfigName = tsConfigName || null;
             // gulp.src('').pipe(pluginShell('tsc --outFile ' + ctx.packageName + ".js --project " + tsConfigName, { cwd: ctx.baseDir }))  // Un-comment when the compiler is able to exclude dependencies
-            gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
+            gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath + ' --outFile ' + ctx.packageName + ".js ", { cwd: ctx.baseDir })) // We could use gulp-typescript with src, but the declarations and sourceMaps are troublesome
                 .pipe(pluginCallback(function () {                  
                     gulp.src(ctx.baseDir + ctx.packageName + ".js")
                     .pipe(pluginReplace(bundleHTMLAndCSS(ctx)))
@@ -531,7 +531,7 @@ module.exports = function (gulpWrapper, ctx) {
     });
 
     gulp.task("__build-typescript", function (callback) {           
-        return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" --stack_size=4096 ' + typescriptCompilerPath + (pluginYargs.listFiles ? " --listFiles" : ""), { cwd: ctx.baseDir }));
+        return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath + (pluginYargs.listFiles ? " --listFiles" : ""), { cwd: ctx.baseDir }));
     });
 
     gulp.task("__build-less", function (callback) {
