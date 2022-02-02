@@ -33,6 +33,7 @@
     "gulp-webserver": "^0.9.1",
     "html-minifier": "~3.5.21",
     "less": "~3.9.0",
+    "lodash": "~4.17.21",
     "lunr": "^2.3.8",
     "run-sequence": "^2.2.1",
     "rxjs": "^6.6.7",
