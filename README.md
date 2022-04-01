@@ -96,6 +96,18 @@ Should be used in conjunction with ```--production```. On top of the packages, i
 
 This flag should be used if the package is meant to be redistributed and extended by others.
 
+##### --brotli
+Should be used in conjunction with ```--production```. This option uses node.js' brotli implementation to compress both the `bundles` and `node_modules` directories present in the output ```/apps/``` directory and creates the corresponding `.br` files.
+
+This is active by default compressing 200 files concurrently (see ```--parallel-brotli``` option).
+
+Use ```--no-brotli``` to disable this option.
+
+##### --parallel-brotli <number_of_parallel_files>
+Is only taken in consideration when the ```--brotli``` option can be used. Determines the number of concurrent files being compressed at a time. 
+
+It defaults to batches of 200 files. The batches are sequential and within each batch the files are compressed concurrently.
+
 ## App
 
 ### Start
