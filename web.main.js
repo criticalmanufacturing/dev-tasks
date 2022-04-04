@@ -240,9 +240,8 @@ module.exports = function (gulpWrapper, ctx) {
         var tasks = ['_build'];
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true) {
             tasks = tasks.concat(['_bundle-app']);
-            // By default, compresses files using brotli
             if (pluginYargs.production) {
-                if (pluginYargs.brotli === undefined || pluginYargs.brotli === true)
+                if (pluginYargs.brotli === true)
                     tasks = tasks.concat([`_brotli`]);
             }
             else if (pluginYargs.brotli === true || pluginYargs.parallelBrotli) {
