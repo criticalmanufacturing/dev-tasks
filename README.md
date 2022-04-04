@@ -102,7 +102,7 @@ Can only be used in conjunction with ```--production```. This option uses node.j
 When this option is active it will, by default, compress 200 files concurrently (see ```--parallel-brotli``` option).
 
 ##### --parallel-brotli <number_of_parallel_files>
-Is only taken in consideration when the ```--brotli``` option can be used. Determines the number of concurrent files being compressed at a time. 
+This option is only taken in consideration when the ```--brotli``` option is used. Determines the number of concurrent files being compressed at a time. 
 
 It defaults to batches of 200 files. The batches are sequential and within each batch the files are compressed concurrently.
 
