@@ -14,8 +14,13 @@ var minify = require('gulp-minify');
 var cleanCss = require('gulp-clean-css');
 const path = require('path');
 var pluginUtil = require('gulp-util');
+var zlib = require('zlib');
+
+// Default batch size of parallel files to compress
+const BROTLI_PARALLEL_FILES_DEFAULT = 200;
 
 module.exports = function (gulpWrapper, ctx) {
+
 
     var bundlePath = ctx.bundlePath ? ctx.bundlePath : "bundles";
 
@@ -225,6 +230,7 @@ module.exports = function (gulpWrapper, ctx) {
                 }
             });
         }
+        cb();
     });
 
     /**
@@ -234,6 +240,13 @@ module.exports = function (gulpWrapper, ctx) {
         var tasks = ['_build'];
         if (ctx.isBundleBuilderOn && ctx.isBundleBuilderOn === true) {
             tasks = tasks.concat(['_bundle-app']);
+            if (pluginYargs.production) {
+                if (pluginYargs.brotli === true)
+                    tasks = tasks.concat([`_brotli`]);
+            }
+            else if (pluginYargs.brotli === true || pluginYargs.parallelBrotli) {
+                pluginUtil.log(pluginUtil.colors.red('Brotli compression is only allowed when building in production mode (use --production). Continuing without compression...'));
+            }
         }
         return pluginRunSequence(tasks, cb);
     });
@@ -242,6 +255,98 @@ module.exports = function (gulpWrapper, ctx) {
      */
     gulp.task('_build', function (cb) {
         return gulp.src('').pipe(pluginShell('\"' + process.execPath + '\" ' + typescriptCompilerPath, { cwd: ctx.baseDir }));
+    });
+
+    /**
+     * Brotli compress task
+     */
+
+    /**
+     * Recursive function to traverse file directories with a depth limit of symlink directories to traverse
+     * @param {string} dir - Directory to recursively traverse
+     * @param {Array.<RegExp>} includeRegex - Regex expressions to match files
+     * @param {Array.<RegExp>} excludeRegex - Regex expressions to exclude files
+     * @param {Number} symlinkMaxDepth - Maximum depth of symlink directories allowed to traverse (to avoid infinite loops)
+     * @param {Number} symlinkDepth - Current depth of symlink directories already traversed
+     * @returns {Array.<string>} - Array containing the path of the matched files
+     */
+    function getFiles(dir, includeRegex, excludeRegex, symlinkMaxDepth, symlinkDepth=0) {
+        const dirContents = fs.readdirSync(dir, { withFileTypes: true });
+        const files = dirContents.reduce((files, dirContent) => {
+            const res = path.resolve(dir, dirContent.name);
+            if (dirContent.isSymbolicLink()) {
+                if (symlinkDepth < symlinkMaxDepth) {
+                    return files.concat(getFiles(res, includeRegex, excludeRegex, symlinkMaxDepth, symlinkDepth + 1));
+                }
+            }
+            else {
+                if (dirContent.isDirectory()) {
+                    return files.concat(getFiles(res, includeRegex, excludeRegex, symlinkMaxDepth, symlinkDepth));
+                }
+                else {
+                    if (!excludeRegex.some((r) => r.test(res)) && includeRegex.some((r) => r.test(res))) {
+                        files.push(res);
+                    }
+                }
+            }
+            return files;
+        }, []);
+        return Array.prototype.concat(...files);
+    }
+
+    /**
+     * Uses brotli to compress the given file and saves it with ".br" in the same directory
+     * @param {string} filepath - Path to the file to compress
+     */
+    function compressFile(filepath) {
+        const fileContents = fs.readFileSync(filepath);
+        let compressedFile = zlib.brotliCompressSync(fileContents, {
+            params: {
+                [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY,
+            }
+        });
+        fs.writeFileSync(filepath + '.br', compressedFile);
+    }
+
+    gulp.task('_brotli', function (cb) {
+        let excludes = ['.*-debug\.js$', 'gulpfile\.js', 'package\.json', 'npm-shrinkwrap\.json', 'npm.postinstall\.js', 'npm.preinstall\.js', '.*\.br$']
+        let includes = ['.*\.js$', '.*\.json$', '.*\.svg$', '.*\.css$', '.*\.xml$', '.*\.csv$', '.*\.txt$']
+        const excludeRegex = excludes.map((r) => new RegExp(r));
+        const includeRegex = includes.map((r) => new RegExp(r));
+        
+        let parallelBrotliFiles = BROTLI_PARALLEL_FILES_DEFAULT;
+        if (pluginYargs.parallelBrotli) {
+            if(pluginYargs.parallelBrotli === 0) {
+                pluginUtil.log(pluginUtil.colors.yellow(`Parallel brotli flag requires explicit number of concurrent compressing files!\nDefaulting to compress ${parallelBrotliFiles} files using brotli in parallel`));
+            } else {
+                parallelBrotliFiles = Number.isInteger(pluginYargs.parallelBrotli) ? pluginYargs.parallelBrotli : BROTLI_PARALLEL_FILES_DEFAULT;
+                pluginUtil.log(pluginUtil.colors.yellow(`Compressing ${parallelBrotliFiles} files using brotli in parallel`));
+            }
+        }        
+
+        let bundlesFiles = getFiles(path.join(ctx.baseDir, 'bundles'), includeRegex, excludeRegex, 1);
+        let nodeFiles = getFiles(path.join(ctx.baseDir, 'node_modules'), includeRegex, excludeRegex, 1);
+        
+        let compressedFilesCount = 0;
+        let parallelCompressFiles = (filepaths) => {
+            // compress a batch of <parallelBrotliFiles> files in parallel (batches are sequential)
+            Promise.all(filepaths.splice(0, parallelBrotliFiles).map(filepath => compressFile(filepath)))
+                .then((_) => {
+                    // If there are more files to compress, make recursive call
+                    // Otherwise, call callback to indicate task completion
+                    if (filepaths.length > 0) {
+                        compressedFilesCount += parallelBrotliFiles;
+                        // Print a message every 10 completed batches
+                        if ((compressedFilesCount / parallelBrotliFiles) % 10 === 0)
+                            pluginUtil.log(`Brotli compress: ${filepaths.length} files remaining...`);
+                        return parallelCompressFiles(filepaths);
+                    }
+                    else
+                        cb();
+                });
+        }
+        
+        parallelCompressFiles(bundlesFiles.concat(nodeFiles));
     });
 
     gulp.task('deploy', function (cb) {
