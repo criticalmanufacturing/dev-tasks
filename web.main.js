@@ -245,7 +245,7 @@ module.exports = function (gulpWrapper, ctx) {
                 if (pluginYargs.brotli === undefined || pluginYargs.brotli === true)
                     tasks = tasks.concat([`_brotli`]);
             }
-            else if (pluginYargs.brotli === undefined || pluginYargs.brotli === true || pluginYargs.parallelBrotli) {
+            else if (pluginYargs.brotli === true || pluginYargs.parallelBrotli) {
                 pluginUtil.log(pluginUtil.colors.red('Brotli compression is only allowed when building in production mode (use --production). Continuing without compression...'));
             }
         }
