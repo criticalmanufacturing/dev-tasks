@@ -262,15 +262,17 @@ module.exports = function (gulpWrapper, ctx) {
      */
 
     /**
-     * Recursive function to traverse file directories with a depth limit of symlink directories to traverse
+     * Recursive function to traverse file directories with a depth limit of symlink directories to traverse. If the path does not exist returns an empty array.
      * @param {string} dir - Directory to recursively traverse
      * @param {Array.<RegExp>} includeRegex - Regex expressions to match files
      * @param {Array.<RegExp>} excludeRegex - Regex expressions to exclude files
      * @param {Number} symlinkMaxDepth - Maximum depth of symlink directories allowed to traverse (to avoid infinite loops)
      * @param {Number} symlinkDepth - Current depth of symlink directories already traversed
-     * @returns {Array.<string>} - Array containing the path of the matched files
+     * @returns {Array.<string>} - Array containing the paths of the matched files. Empty array if path does not exist or no files are matched.
      */
     function getFiles(dir, includeRegex, excludeRegex, symlinkMaxDepth, symlinkDepth=0) {
+        if (!fs.existsSync(dir))
+            return [];
         const dirContents = fs.readdirSync(dir, { withFileTypes: true });
         const files = dirContents.reduce((files, dirContent) => {
             const res = path.resolve(dir, dirContent.name);
@@ -329,6 +331,8 @@ module.exports = function (gulpWrapper, ctx) {
         
         let compressedFilesCount = 0;
         let parallelCompressFiles = (filepaths) => {
+            if (filepaths.length === 0)
+                return;
             // compress a batch of <parallelBrotliFiles> files in parallel (batches are sequential)
             Promise.all(filepaths.splice(0, parallelBrotliFiles).map(filepath => compressFile(filepath)))
                 .then((_) => {
@@ -341,8 +345,9 @@ module.exports = function (gulpWrapper, ctx) {
                             pluginUtil.log(`Brotli compress: ${filepaths.length} files remaining...`);
                         return parallelCompressFiles(filepaths);
                     }
-                    else
+                    else {
                         cb();
+                    }
                 });
         }
         
