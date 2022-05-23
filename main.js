@@ -16,7 +16,7 @@ module.exports = function (gulp, ctx) {
     // i18n Configuration
     if (!ctx.__i18n) {
         ctx.__i18n = {
-            supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL", "sv-SE"],
+            supportedCultures: ["en-US", "pt-PT", "vi-VN", "de-DE", "zh-CN", "zh-TW", "es-ES", "pl-PL", "sv-SE", "fr-FR"],
             startupCulture: "en-US",
             startupCultureSuffix: "default" // This represents the file suffix that is used during development and needs to be renamed to the default language code
         };
