@@ -250,7 +250,9 @@ module.exports = function (gulpWrapper, ctx) {
             });
         }
 
-        Promise.all(promises).then(cb);
+        Promise.all(promises).then(function() {
+            cb();
+        });
     });
 
     /**
