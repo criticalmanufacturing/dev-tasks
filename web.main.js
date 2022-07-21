@@ -125,6 +125,8 @@ module.exports = function (gulpWrapper, ctx) {
             }
         }
 
+        var promises = [];
+
         if (ctx.isBundleBuilderOn === true && ctx.bundleBuilderConfigFiles && ctx.bundleBuilderConfigFiles.length > 0) {
             var sysBuilderDefaultDir = `apps/${ctx.packageName}`;
             var sysBuilderBaseDir = process.cwd().includes(ctx.packageName) ? '' : sysBuilderDefaultDir;
@@ -172,35 +174,52 @@ module.exports = function (gulpWrapper, ctx) {
                         if (paths && paths.length > 0) {
 
                             if (toMinify) {
-                                gulp.src(paths)
-                                    .pipe(concat(bundleElement.bundleName))
-                                    .pipe(minify({
-                                        ext: {
-                                            min: '.js'
-                                        },
-                                        noSource: true
-                                    }))
-                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
+                                promises.push(new Promise(function (resolve, reject) {
+                                    gulp.src(paths)
+                                        .pipe(concat(bundleElement.bundleName))
+                                        .pipe(minify({
+                                            ext: {
+                                                min: '.js'
+                                            },
+                                            noSource: true
+                                        }))
+                                        .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`))
+                                        .on('error', reject)
+                                        .on('end', resolve);
+                                }));
+
                             }
                             else {
-                                gulp.src(paths)
-                                    .pipe(concat(bundleElement.bundleName))
-                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
+                                promises.push(new Promise(function (resolve, reject) {
+                                    gulp.src(paths)
+                                        .pipe(concat(bundleElement.bundleName))
+                                        .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`))
+                                        .on('error', reject)
+                                        .on('end', resolve);
+                                }));
                             }
                         }
                     }
                     // CSS Files
                     if (fileExtension && fileExtension.endsWith('css')) {
                         if (toMinify) {
-                            gulp.src(paths)
-                                .pipe(concat(bundleElement.bundleName))
-                                .pipe(cleanCss({ inline: ['none'], level: 2 }))
-                                .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
+                            promises.push(new Promise(function (resolve, reject) {
+                                gulp.src(paths)
+                                    .pipe(concat(bundleElement.bundleName))
+                                    .pipe(cleanCss({ inline: ['none'], level: 2 }))
+                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`))
+                                    .on('error', reject)
+                                    .on('end', resolve);
+                            }));
                         }
                         else {
-                            gulp.src(paths)
-                                .pipe(concat(bundleElement.bundleName))
-                                .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`));
+                            promises.push(new Promise(function (resolve, reject) {
+                                gulp.src(paths)
+                                    .pipe(concat(bundleElement.bundleName))
+                                    .pipe(gulp.dest(`${ctx.baseDir}${bundlePath}${fileExtension}`))
+                                    .on('error', reject)
+                                    .on('end', resolve);
+                            }));
                         }
                     }
                 }
@@ -230,7 +249,8 @@ module.exports = function (gulpWrapper, ctx) {
                 }
             });
         }
-        cb();
+
+        Promise.all(promises).then(cb);
     });
 
     /**
