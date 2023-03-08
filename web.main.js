@@ -293,7 +293,7 @@ module.exports = function (gulpWrapper, ctx) {
      * @returns {Array.<string>} - Array containing the paths of the matched files. Empty array if path does not exist or no files are matched.
      */
     function getFiles(dir, includeRegex, excludeRegex, symlinkMaxDepth, symlinkDepth=0) {
-        if (!fs.existsSync(dir))
+        if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory())
             return [];
         const dirContents = fs.readdirSync(dir, { withFileTypes: true });
         const files = dirContents.reduce((files, dirContent) => {
